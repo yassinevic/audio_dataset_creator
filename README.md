@@ -93,4 +93,4 @@ This project is licensed under the MIT License. See `LICENSE` for more details.
 
 ## Contact
 
-For questions or support, open an issue or contact the maintainer at [yassinevic@gmail.com].
+For questions or support, open an issue.
