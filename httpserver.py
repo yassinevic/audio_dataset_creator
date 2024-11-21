@@ -3,7 +3,7 @@ import re
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from urllib.parse import urlparse
-from lib.tools import PROJECTS_DIR, createProjectStructure, delete_transcriptions, deleteDataset, get_content_type, get_db, get_project_dir, import_transcriptions, list_directories, removeRecording, upload_audio
+from lib.tools import PROJECTS_DIR, add_dataset, createProjectStructure, delete_transcriptions, deleteDataset, deleteSubDataset, get_content_type, get_db, get_project_dir, import_transcriptions, list_directories, removeRecording, upload_audio
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 #import cgi
@@ -169,13 +169,20 @@ class SimpleHandler(BaseHTTPRequestHandler):
                 except Exception as e:
                     print(e)
                     self.wfile.write(b'{"status": "Failed", "message": "File not deleted"}')
-            elif self.path == '/deleteDataset':
+            elif self.path == '/delete_dataset':
                 try:
                     deleteDataset(fields)
-                    self.wfile.write(b'{"status": "success", "message": "File deleted"}')
+                    self.wfile.write(b'{"status": "success", "message": "Dataset deleted"}')
                 except Exception as e:
                     print(e)
-                    self.wfile.write(b'{"status": "Failed", "message": "File not deleted"}')
+                    self.wfile.write(b'{"status": "Failed", "message": "Dataset not deleted"}')
+            elif self.path == '/delete_sub_dataset':
+                try:
+                    deleteSubDataset(fields)
+                    self.wfile.write(b'{"status": "success", "message": "Dataset deleted"}')
+                except Exception as e:
+                    print(e)
+                    self.wfile.write(b'{"status": "Failed", "message": "Dataset not deleted"}')
             elif self.path == '/import_transcriptions':
                 try:
                     import_transcriptions(fields)
@@ -190,6 +197,13 @@ class SimpleHandler(BaseHTTPRequestHandler):
                 except Exception as e:
                     print(e)
                     self.wfile.write(b'{"status": "Failed", "message": "transcription not deleted"}')
+            elif self.path == '/add_dataset':
+                try:
+                    add_dataset(fields)
+                    self.wfile.write(b'{"status": "success", "message": "dataset added"}')
+                except Exception as e:
+                    print(e)
+                    self.wfile.write(b'{"status": "Failed", "message": "data not add"}')           
             else:
                 self.send_response(400)
                 self.send_cors_headers()  # Add CORS headers to each response

@@ -35,15 +35,6 @@ class SQLiteDBHelper:
         self.connection.commit()
         self.close()
 
-    def insert(self, table: str, data: dict):
-        """Insert a record into a table."""
-        self.connect()
-        columns = ', '.join(data.keys())
-        placeholders = ', '.join('?' for _ in data)
-        sql = f"INSERT INTO {table} ({columns}) VALUES ({placeholders})"
-        self.cursor.execute(sql, tuple(data.values()))
-        self.connection.commit()
-        self.close()
 
     def flag(self, table: str, is_recorded: int, id:int):
         """Insert a record into a table."""
@@ -173,6 +164,14 @@ class SQLiteDBHelper:
         self.close()
         return self.cursor.rowcount > 0  # Returns True if a row was deleted
 
+    def delete_sub_data_set(self, table: str, dataset: str, dataset_value: Any, sub_dataset: str, sub_dataset_value: Any):
+        """Delete a key-value pair from the database."""
+        self.connect()
+        sql = f"DELETE FROM {table} WHERE {dataset} = ? and  {sub_dataset} = ?"
+        self.cursor.execute(sql, (dataset_value, sub_dataset_value))
+        self.connection.commit()
+        self.close()
+        return self.cursor.rowcount > 0  # Returns True if a row was deleted
 
     def execute_query(self, query: str):
         """Execute a custom query (use with caution for SELECT queries only)."""
