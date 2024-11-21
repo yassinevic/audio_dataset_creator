@@ -1,8 +1,4 @@
 <script lang="ts">
-  import { onMount } from "svelte";
-  import AudioPlayer from "../components/AudioPlayer.svelte";
-  import ConfirmationBox from "../components/ConfirmationBox.svelte";
-  import FileUploder from "../components/FileUploder.svelte";
   import {
     SentenceStatus,
     SubDataSet,
@@ -10,17 +6,16 @@
     type Sentence,
     type SentenceID,
     type SentenceResponse,
-  } from "../types/sentence";
-  import Pagination from "../components/Pagination.svelte";
-  import DropDown from "../components/DropDown.svelte";
-  import Subset from "../components/Subset.svelte";
-  import { sentencesStore } from "../stores/store";
-  let BACKEND = import.meta.env.VITE_BACKEND || "";
+  } from "$lib/types/sentence";
 
-  // Declare a variable to store the sentences
-  // let sentences: Sentence[] = [];
-  //$: sentences: Sentence[] = sentencesStore;
-  //$: sentences: Sentence[] = sentencesStore;
+  import AudioPlayer from "$lib/components/AudioPlayer.svelte";
+  import ConfirmationBox from "$lib/components/ConfirmationBox.svelte";
+  import DropDown from "$lib/components/DropDown.svelte";
+  import FileUploder from "$lib/components/FileUploder.svelte";
+  import Pagination from "$lib/components/Pagination.svelte";
+  import Subset from "$lib/components/Subset.svelte";
+  import { sentencesStore } from "$lib/stores/store";
+  let BACKEND = import.meta.env.VITE_BACKEND || "";
 
   // Reactive subscription to the store
   $: sentences = $sentencesStore;
@@ -30,7 +25,6 @@
   let dataset: Dataset;
   let subDataset: SubDataSet | null = null;
   let showConfirmationBox = false;
-  let deleteAll = false;
   let mediaRecorder!: MediaRecorder;
   let audioChunks: BlobPart[] = [];
   let currentPage: number = 1;
@@ -52,7 +46,6 @@
     )
       .then((response) => response.json())
       .then((sentenceResponse: SentenceResponse) => {
-        //sentences = [...sentenceResponse.sentence];
         sentencesStore.set(sentenceResponse);
         firstLoad = false;
       });
@@ -64,7 +57,7 @@
       //sentences = [...sentences]; // Reassign array to trigger reactivity
       sentencesStore.update((sentenceResponse) => ({
         ...sentenceResponse,
-        sentence: sentenceResponse.sentence.map((_sentence) =>
+        sentence: sentenceResponse.sentence.map((_sentence:Sentence) =>
           _sentence.id === sentence.id
             ? { ..._sentence, isRecording: true }
             : _sentence
@@ -126,16 +119,12 @@
     sentence: Sentence | SentenceID[] | SentenceStatus
   ) {
     showConfirmationBox = true;
-    deleteAll = false;
     if (typeof sentence === "object" && !Array.isArray(sentence)) {
       deletionselectedValues = [];
       selectedSentence = sentence;
     } else if (Array.isArray(sentence)) {
       deletionselectedValues = [...sentence];
       selectedSentence = null;
-    } else if (sentence === SentenceStatus.ALL) {
-      selectedSentence = null;
-      deleteAll = true;
     } else {
       selectedSentence = null;
     }
@@ -146,32 +135,8 @@
     if (deletionselectedValues.length > 0) {
       deleteSelection();
       return;
-    } else if (deleteAll) {
-      deleteDataset();
     }
     removeRecording();
-  }
-
-  function deleteDataset() {
-    deleteAll = false;
-    const formData = new FormData();
-    formData.append("datasetId", dataset.id.toString());
-    formData.append("datasetName", dataset.name);
-    formData.append("subset", subDataset ?? "");
-
-    fetch(`${BACKEND}/deleteDataset`, {
-      method: "POST",
-      body: formData,
-    })
-      .then((response) => response.json())
-      .then((result) => {
-        if (result.status === "success") {
-          //sentences = [];
-          sentencesStore.set({ count: 0, sentence: [] });
-        } else {
-          alert("Failed to save the recording.");
-        }
-      });
   }
 
   function removeRecording() {
@@ -199,10 +164,9 @@
           alert("Failed to save the recording.");
         }
         selectedSentence.isRecording = false;
-        //sentences = [...sentences]; // Reassign array to trigger reactivity
         sentencesStore.update((sentences) => ({
           ...sentences,
-          sentence: sentences.sentence.map((_sentence) =>
+          sentence: sentences.sentence.map((_sentence: Sentence) =>
             _sentence.id === (selectedSentence?.id ?? -1)
               ? { ..._sentence, isRecording: false }
               : _sentence
@@ -229,14 +193,11 @@
       .then((response) => response.json())
       .then((result) => {
         if (result.status === "success") {
-          //sentence.recorded = true;
           getSentences(currentSentenceStatus);
           deletionselectedValues = [];
         } else {
           alert("Failed to save the recording.");
         }
-        //sentence.isRecording = false;
-        //sentences = [...sentences]; // Reassign array to trigger reactivity
       });
   }
 
@@ -259,13 +220,12 @@
         } else {
           alert("Failed to save the recording.");
         }
-        //sentence.isRecording = false;
-        //sentences = [...sentences]; // Reassign array to trigger reactivity
+
         sentencesStore.update((sentences) => ({
           ...sentences,
-          sentence: sentences.sentence.map((_sentence) =>
+          sentence: sentences.sentence.map((_sentence: Sentence) =>
             _sentence.id === (sentence?.id ?? -1)
-              ? { ..._sentence, isRecording: false , recorded: true}
+              ? { ..._sentence, isRecording: false, recorded: true }
               : _sentence
           ),
         }));
@@ -275,19 +235,12 @@
   function setCurrentDataset(_dataset: Dataset) {
     subDataset = null;
     dataset = _dataset;
-    //sentences = [];
     sentencesStore.set({ count: 0, sentence: [] });
   }
 
   function setCurrentSubset(_subDataset: SubDataSet) {
     subDataset = _subDataset;
     getSentences(SentenceStatus.ALL);
-  }
-
-  function handleFileUploded(status: boolean) {
-    if (status) {
-      getSentences(currentSentenceStatus);
-    }
   }
 </script>
 
@@ -316,10 +269,7 @@
       </div>
     </div>
 
-    <div
-      class="bg-white py-4 md:py-7 px-4 md:px-8 xl:px-10"
-      
-    >
+    <div class="bg-white py-4 md:py-7 px-4 md:px-8 xl:px-10">
       <div class="sm:flex items-center justify-between">
         <div class="flex items-center">
           <button
@@ -386,18 +336,12 @@
               Delete selection
             </p>
           </button>
-          <button
-            on:click={(event) => confirmRemoveRecording(SentenceStatus.ALL)}
-            class:hidden={(sentences?.sentence ?? []).length === 0}
-            class="focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 mt-4 sm:mt-0 inline-flex items-start justify-start px-6 py-3 bg-indigo-700 hover:bg-indigo-600 focus:outline-none rounded"
-          >
-            <p class="text-sm font-medium leading-none text-white">
-              Delete All
-            </p>
-          </button>
         </div>
       </div>
-      <div class="mt-7 overflow-x-auto" class:blur-sm={(sentences?.sentence ?? []).length === 0}>
+      <div
+        class="mt-7 overflow-x-auto"
+        class:blur-sm={(sentences?.sentence ?? []).length === 0}
+      >
         <div class="flex justify-end pb-2">
           <Pagination
             onNext={() => currentPage++}
@@ -428,20 +372,8 @@
                       <div
                         class="check-icon hidden bg-indigo-700 text-white rounded-sm"
                       >
-                        <svg
-                          class="icon icon-tabler icon-tabler-check"
-                          xmlns="http://www.w3.org/2000/svg"
-                          width="20"
-                          height="20"
-                          viewBox="0 0 24 24"
-                          stroke-width="1.5"
-                          stroke="currentColor"
-                          fill="none"
-                          stroke-linecap="round"
-                          stroke-linejoin="round"
-                        >
-                          <path stroke="none" d="M0 0h24v24H0z"></path>
-                          <path d="M5 12l5 5l10 -10"></path>
+                        <svg class=" w-4 h-4 text-gray-400">
+                          <use href="icons.svg#icon-checked"></use>
                         </svg>
                       </div>
                     </div>
@@ -454,41 +386,12 @@
                        border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       contenteditable="true"
                     >
-                      {sentence.id}
                       {sentence.transcription}
                     </p>
 
                     <button aria-labelledby="Update sentence">
-                      <svg
-                        width="18"
-                        height="18"
-                        viewBox="0 0 24 24"
-                        version="1.1"
-                        xmlns="http://www.w3.org/2000/svg"
-                        xmlns:xlink="http://www.w3.org/1999/xlink"
-                      >
-                        <!-- Uploaded to: SVG Repo, www.svgrepo.com, Generator: SVG Repo Mixer Tools -->
-                        <title>ic_fluent_phone_update_24_regular</title>
-                        <desc>Created with Sketch.</desc>
-                        <g
-                          id="🔍-Product-Icons"
-                          stroke="none"
-                          stroke-width="1"
-                          fill="none"
-                          fill-rule="evenodd"
-                        >
-                          <g
-                            id="ic_fluent_phone_update_24_regular"
-                            fill="#212121"
-                            fill-rule="nonzero"
-                          >
-                            <path
-                              d="M15.75,2 C16.9926407,2 18,3.00735931 18,4.25 L18,19.75 C18,20.9926407 16.9926407,22 15.75,22 L8.25,22 C7.00735931,22 6,20.9926407 6,19.75 L6,4.25 C6,3.00735931 7.00735931,2 8.25,2 L15.75,2 Z M15.75,3.5 L8.25,3.5 C7.83578644,3.5 7.5,3.83578644 7.5,4.25 L7.5,19.75 C7.5,20.1642136 7.83578644,20.5 8.25,20.5 L15.75,20.5 C16.1642136,20.5 16.5,20.1642136 16.5,19.75 L16.5,4.25 C16.5,3.83578644 16.1642136,3.5 15.75,3.5 Z M12,7.03091032 C12.3796958,7.03091032 12.693491,7.3130642 12.7431534,7.67913976 L12.75,7.78091032 L12.7493326,14.4919103 L13.7113373,13.5308062 C13.9776038,13.2645396 14.3942675,13.2403335 14.687879,13.458188 L14.7719974,13.5308062 C15.038264,13.7970727 15.0624701,14.2137364 14.8446156,14.5073479 L14.7719974,14.5914663 L12.5303301,16.8331337 L12.4921384,16.8687687 L12.4296295,16.9177078 L12.3630989,16.9592071 L12.3025771,16.989272 L12.2018763,17.0253178 L12.1392767,17.0398316 L12.0467865,17.0513519 L11.9532009,17.0513519 L11.8614701,17.0400358 L11.7651467,17.0152982 L11.6535357,16.9682062 L11.576687,16.9220073 L11.4696699,16.8331337 L11.4696699,16.8331337 L9.22800255,14.5914663 C8.93510933,14.2985731 8.93510933,13.8236994 9.22800255,13.5308062 C9.49426911,13.2645396 9.9109328,13.2403335 10.2045443,13.458188 L10.2886627,13.5308062 L11.2493326,14.4919103 L11.25,7.78091032 C11.25,7.43573235 11.483185,7.14501766 11.8006203,7.05770104 L11.8982294,7.03775694 L12,7.03091032 Z"
-                              id="🎨Color"
-                            >
-                            </path>
-                          </g>
-                        </g>
+                      <svg class=" w-4 h-4 text-gray-400">
+                        <use href="icons.svg#icon-update-text"></use>
                       </svg>
                     </button>
                   </div>
@@ -515,18 +418,8 @@
                     on:click={(event) => startRecording(sentence)}
                     aria-label="Microphone"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                      width="24"
-                      height="24"
-                      class="text-gray-600"
-                    >
-                      <title>Start recording</title>
-                      <path
-                        d="M12 14a3 3 0 003-3V5a3 3 0 00-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 0014 0h-2zm-5 6v3h4v2H8v-2h4v-3h2z"
-                      />
+                    <svg class=" w-6 h-6 text-gray-600">
+                      <use href="icons.svg#icon-mic"></use>
                     </svg>
                   </button>
 
@@ -536,78 +429,27 @@
                     class="mic-button p-2"
                     aria-label="Microphone Disabled"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                      width="24"
-                      height="24"
-                      class="text-red-700"
-                    >
-                      <title>Stop recording</title>
-                      <path
-                        d="M12 14a3 3 0 003-3V5a3 3 0 00-6 0v6a3 3 0 003 3zm5-3a5 5 0 01-10 0H5a7 7 0 0014 0h-2zm-5 6v3h4v2H8v-2h4v-3h2z"
-                      />
-                      <!-- Slash Line for Disabled State -->
-                      <line
-                        x1="4"
-                        y1="20"
-                        x2="20"
-                        y2="4"
-                        stroke="currentColor"
-                        stroke-width="2"
-                        stroke-linecap="round"
-                      />
+                    <svg class=" w-6 h-6 text-red-700">
+                      <use href="icons.svg#icon-mic"></use>
                     </svg>
                   </button>
                   <button
                     on:click={(event) => confirmRemoveRecording([sentence.id])}
                     aria-label="Delete the sentence"
                   >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="currentColor"
-                      viewBox="0 0 24 24"
-                      width="24"
-                      height="24"
-                      class="text-red-700"
-                    >
-                      <title>Delete the sentence</title>
-                      <!-- Trash Can Icon -->
-                      <path
-                        d="M9 3V4H4V6H5V20C5 21.1 5.9 22 7 22H17C18.1 22 19 21.1 19 20V6H20V4H15V3H9ZM17 6V20H7V6H17ZM9 9H11V17H9V9ZM13 9H15V17H13V9Z"
-                      />
+                    <svg class=" w-6 h-6 text-red-700">
+                      <use href="icons.svg#icon-trash"></use>
                     </svg>
                   </button>
                   <button
                     class:hidden={!sentence.recorded}
                     on:click={(event) => confirmRemoveRecording(sentence)}
+                    aria-labelledby="Delete audio only"
                   >
-                    <svg
-                      width="24"
-                      height="24"
-                      xmlns="http://www.w3.org/2000/svg"
-                      viewBox="0 0 122.88 90.44"
-                      ><defs
-                        ><style>
-                          .cls-1 {
-                            fill: #212121;
-                          }
-                          .cls-2 {
-                            fill: #f44336;
-                          }
-                        </style></defs
-                      ><title>Remove the audio</title><path
-                        class="cls-1"
-                        d="M90.14,21.81a5.14,5.14,0,0,1,8.78-3.64h0a5.16,5.16,0,0,1,1.51,3.64v44L90.14,55.62V21.81ZM0,16.61A5.13,5.13,0,0,1,1.51,13h0a5.15,5.15,0,0,1,8.78,3.64V72.23a5.13,5.13,0,0,1-1.51,3.63h0A5.15,5.15,0,0,1,0,72.23V16.61Zm32.87,16.5V85.29a5.13,5.13,0,0,1-8.77,3.64h0a5.11,5.11,0,0,1-1.5-3.63V23L32.87,33.11Zm34.77-.78a5.15,5.15,0,0,1,1.5-3.64h0a5.13,5.13,0,0,1,7.26,0h0a5.11,5.11,0,0,1,1.5,3.63V43.59L67.64,33.45V32.33ZM46.76,12.89a5.14,5.14,0,0,1,8.66,3.75v4.78l-8.66-8.53Zm8.66,42.43V72.25a5.16,5.16,0,0,1-1.51,3.64h0a5.15,5.15,0,0,1-8.78-3.64V45.19L55.42,55.32ZM112.7,10.43a5.14,5.14,0,0,1,1.49-3.62l.11-.1a5,5,0,0,1,7.1.1,5.15,5.15,0,0,1,1.48,3.62v68a5.13,5.13,0,0,1-1.48,3.62l-.11.1a5.08,5.08,0,0,1-7.83-1,12.76,12.76,0,0,0-.73-2.13,5.12,5.12,0,0,1,0-.56v-68Z"
-                      /><path
-                        class="cls-2"
-                        d="M17.94,8.27a4.83,4.83,0,1,1,6.77-6.88l80.37,79.17a4.83,4.83,0,1,1-6.77,6.88L17.94,8.27Z"
-                      /></svg
-                    >
+                    <svg class=" w-6 h-6 text-red-700">
+                      <use href="icons.svg#icon-wav"></use>
+                    </svg>
                   </button>
-
-
                 </td>
               </tr>
               <tr class="h-3"></tr>

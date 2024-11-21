@@ -96,6 +96,15 @@ def import_transcriptions(fields):
     db.save_json_data('sentence', transcription_json, dataset, sub_dataset)
     return True
 
+def add_dataset(fields):
+    name = fields.get('dataset')
+    my_dict = {
+        "name": name
+    }
+    db.insert('dataset',my_dict)
+    return True
+
+
 def createFolder(folder_path):
     if os.path.exists(folder_path) and os.path.isdir(folder_path):
         print(f"The folder {folder_path} exists.")
@@ -144,13 +153,25 @@ def removeRecording(fields):
 def deleteDataset(fields):
     dataset_id = int(fields.get('datasetId'))
     dataset_name = fields.get('datasetName')
-    sub_dataset = fields.get('subset')
-    db.delete('sentence', 'dataset', dataset_id)
+    db.delete('dataset', 'id', dataset_id)
 
     # Attempt to delete the file and respond with success or failure
     # Example usage
-    folder_path = PROJECTS_DIR + "/"  + dataset_name + "/"+ sub_dataset+ "/audio/"
-    delete_and_recreate_folder(folder_path)
+    folder_path = PROJECTS_DIR + "/"  + dataset_name
+    # Delete the folder and its contents
+    shutil.rmtree(folder_path)
+    return True
+
+def deleteSubDataset(fields):
+    dataset = fields.get('dataset')
+    sub_dataset = fields.get('sub_dataset')
+    db.delete_sub_data_set('sentence', 'dataset', dataset, 'sub_dataset', sub_dataset)
+
+    # Attempt to delete the file and respond with success or failure
+    # Example usage
+    file_path = PROJECTS_DIR + "/"  + dataset+ "/" + sub_dataset + "/audio/"
+    delete_file(file_path)
+    return True
 
 
 
