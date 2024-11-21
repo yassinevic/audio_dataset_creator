@@ -31,6 +31,7 @@
   let pageSize: number = 10;
   let firstLoad = true;
   let currentSentenceStatus = SentenceStatus.ALL;
+  let newSentance = "";
   $: currentPage, firePagination();
 
   function firePagination() {
@@ -53,11 +54,9 @@
 
   function startRecording(sentence: any) {
     try {
-      //sentence.isRecording = true;
-      //sentences = [...sentences]; // Reassign array to trigger reactivity
       sentencesStore.update((sentenceResponse) => ({
         ...sentenceResponse,
-        sentence: sentenceResponse.sentence.map((_sentence:Sentence) =>
+        sentence: sentenceResponse.sentence.map((_sentence: Sentence) =>
           _sentence.id === sentence.id
             ? { ..._sentence, isRecording: true }
             : _sentence
@@ -177,7 +176,6 @@
   }
   function deleteSelection() {
     if (deletionselectedValues.length === 0) {
-      alert();
       return;
     }
 
@@ -242,6 +240,33 @@
     subDataset = _subDataset;
     getSentences(SentenceStatus.ALL);
   }
+
+  function addSentance() {
+    let jsonOutput = [
+      {
+        transcription: newSentance.trim(),
+      },
+    ];
+    let transcription = JSON.stringify(jsonOutput, null, 2);
+    const formData = new FormData();
+    formData.append("transcription", transcription);
+    formData.append("sub_dataset", subDataset ?? "");
+    formData.append("dataset", dataset.id.toString());
+
+    fetch(`${BACKEND}/import_transcriptions`, {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.status === "success") {
+          getSentences(currentSentenceStatus);
+        } else {
+          alert("Failed to save the recording.");
+        }
+      });
+    newSentance = "";
+  }
 </script>
 
 <svelte:head>
@@ -277,7 +302,7 @@
             class:bg-indigo-50={currentSentenceStatus === SentenceStatus.ALL}
             class:ring-indigo-800={currentSentenceStatus === SentenceStatus.ALL}
             class:ring-2={currentSentenceStatus === SentenceStatus.ALL}
-            class:hidden={(sentences?.sentence ?? []).length === 0}
+            class:hidden={!subDataset}
             class="rounded-full focus:outline-none focus:ring-2 focus:bg-indigo-50 focus:ring-indigo-800 ml-4 sm:ml-8"
           >
             <div
@@ -293,7 +318,7 @@
             class:ring-indigo-800={currentSentenceStatus ===
               SentenceStatus.RECORDED}
             class:ring-2={currentSentenceStatus === SentenceStatus.RECORDED}
-            class:hidden={(sentences?.sentence ?? []).length === 0}
+            class:hidden={!subDataset}
             class="rounded-full focus:outline-none focus:ring-2 focus:bg-indigo-50 focus:ring-indigo-800 ml-4 sm:ml-8"
           >
             <div
@@ -309,7 +334,7 @@
             class:ring-indigo-800={currentSentenceStatus ===
               SentenceStatus.PENDIND}
             class:ring-2={currentSentenceStatus === SentenceStatus.PENDIND}
-            class:hidden={(sentences?.sentence ?? []).length === 0}
+            class:hidden={!subDataset}
             class="rounded-full focus:outline-none focus:ring-2 focus:bg-indigo-50 focus:ring-indigo-800 ml-4 sm:ml-8"
           >
             <div
@@ -321,27 +346,40 @@
         </div>
         <div>
           <button
-            class="focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 mt-4 sm:mt-0 inline-flex items-start justify-start px-6 py-3 bg-indigo-700 hover:bg-indigo-600 focus:outline-none rounded"
-          >
-            <p class="text-sm font-medium leading-none text-white">
-              Add Sentence
-            </p>
-          </button>
-          <button
+            disabled={deletionselectedValues.length === 0}
+            class:hidden={!subDataset}
             on:click={(event) => confirmRemoveRecording(deletionselectedValues)}
-            class:hidden={(sentences?.sentence ?? []).length === 0}
-            class="focus:ring-2 focus:ring-offset-2 focus:ring-indigo-600 mt-4 sm:mt-0 inline-flex items-start justify-start px-6 py-3 bg-indigo-700 hover:bg-indigo-600 focus:outline-none rounded"
+            class="px-2 py-2 text-xs disabled:bg-gray-300 font-medium text-white bg-blue-500 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
           >
-            <p class="text-sm font-medium leading-none text-white">
-              Delete selection
-            </p>
+            Delete selection
           </button>
         </div>
       </div>
-      <div
-        class="mt-7 overflow-x-auto"
-        class:blur-sm={(sentences?.sentence ?? []).length === 0}
-      >
+
+      <div class="pt-6 pb-2" class:hidden={!subDataset}>
+        <form class="max-w-sm mx-auto">
+          <label
+            for="nexwSentance"
+            class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+            >Add your sentence and hit enter</label
+          >
+          <input
+            type="text"
+            bind:value={newSentance}
+            on:keydown={(event) => {
+              if (event.key === "Enter") {
+                addSentance();
+              }
+            }}
+            id="newSentance"
+            aria-describedby="helper-text-explanation"
+            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+            placeholder="Your sentence here..."
+          />
+        </form>
+      </div>
+
+      <div class="mt-7 overflow-x-auto" class:hidden={!subDataset}>
         <div class="flex justify-end pb-2">
           <Pagination
             onNext={() => currentPage++}
@@ -446,7 +484,7 @@
                     on:click={(event) => confirmRemoveRecording(sentence)}
                     aria-labelledby="Delete audio only"
                   >
-                    <svg class=" w-6 h-6 text-red-700">
+                    <svg class=" w-6 h-6 text-gray-700">
                       <use href="icons.svg#icon-wav"></use>
                     </svg>
                   </button>

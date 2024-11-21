@@ -33,7 +33,10 @@
           files = [];
           let json = toJson(text_lines.split("\n"));
           json = json.trim();
-          saveFile(json);
+          if (json != "") {
+            saveFile(json , subDataset, dataset);
+          }
+          
         }
       };
       reader.readAsText(file);
@@ -67,16 +70,16 @@
   }
 
   function toJson(transcriptions: string[]) {
-    const jsonOutput = transcriptions.map((transcription, index) => ({
-      file: `file_${String(index + 1).padStart(5, "0")}.wav`,
+    const jsonOutput = transcriptions.filter((transcription) => transcription.trim() !== "").map((transcription, index) => ({
       transcription: transcription.trim(),
     }));
     return JSON.stringify(jsonOutput, null, 2);
   }
 
-  function saveFile(transcription: any) {
+  function saveFile(fileContent: string, subDataset:SubDataSet, dataset:Dataset) {
+
     const formData = new FormData();
-    formData.append("transcription", transcription.toString());
+    formData.append("transcription", fileContent);
     formData.append("sub_dataset", subDataset.toString());
     formData.append("dataset", dataset.id.toString());
 

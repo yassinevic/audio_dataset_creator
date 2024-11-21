@@ -44,9 +44,13 @@
     ).then((response) => response.json());
   }
 
-  sentencesStore.subscribe((sentence) => {
-    let part = sentence?.sentence[0]?.sub_dataset as SubDataSet;
-    counts[part] = sentence.count;
+  sentencesStore.subscribe((sentenceResponse) => {
+    if (!sentenceResponse) {
+      return;
+    }
+
+    let part: SubDataSet = sentenceResponse.subDataSet;
+    counts[part] = sentenceResponse?.count ?? 0;
     counts = {
       ...counts,
     };

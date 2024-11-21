@@ -61,6 +61,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
            
             response = {
                "count": count,
+               "subDataSet": sub_dataset,
                "sentence": json.loads(json_data)
             }
             self.wfile.write(json.dumps(response, ensure_ascii=False).encode())

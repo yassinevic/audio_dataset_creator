@@ -52,10 +52,11 @@ class SQLiteDBHelper:
         offset = (page - 1) * page_size
     
         # SQL query with LIMIT and OFFSET for pagination
-        sql = f"SELECT * FROM {table} WHERE dataset = {dataset} AND sub_dataset = '{sub_dataset}' LIMIT {page_size} OFFSET {offset}"
+        sql = f"SELECT * FROM {table} WHERE dataset = {dataset} AND sub_dataset = '{sub_dataset}' ORDER BY id DESC LIMIT {page_size} OFFSET {offset}"
         if recorded>-1:
-            sql = f"SELECT * FROM {table} WHERE recorded = {recorded} AND dataset = {dataset} AND sub_dataset = '{sub_dataset}' LIMIT {page_size} OFFSET {offset}"
+            sql = f"SELECT * FROM {table} WHERE recorded = {recorded} AND dataset = {dataset} AND sub_dataset = '{sub_dataset}' ORDER BY id DESC LIMIT {page_size} OFFSET {offset}"
 
+        print(sql)
         self.cursor.execute(sql)
         rows = self.cursor.fetchall()
         self.close()

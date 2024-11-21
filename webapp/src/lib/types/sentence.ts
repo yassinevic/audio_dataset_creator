@@ -17,6 +17,7 @@
 
   export interface SentenceResponse {
     count: number;
+    subDataSet:SubDataSet;
     sentence: Sentence[];
   }
 
