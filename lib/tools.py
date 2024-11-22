@@ -2,7 +2,9 @@
 import csv
 import json
 import os
+import platform
 import shutil
+import subprocess
 import sys
 from lib.sqlite_db import SQLiteDBHelper
 
@@ -120,7 +122,30 @@ def createProjectStructure(dataset_name):
     validation_folder_path = PROJECTS_DIR + "/"  + dataset_name  + "/validation" + "/audio/"
     createFolder(validation_folder_path)
 
+def export_table_to_csv(fields):
+        sub_dataset = fields.get('subDataset')
+        dataset_id = int(fields.get('datasetId'))
+        dataset_name = fields.get('datasetName')
+        # Query to fetch all data from the table
+        query = f"SELECT 'audio/' || file AS file, transcription FROM sentence WHERE dataset = {dataset_id} AND sub_dataset = '{sub_dataset}'"
+        rs = db.execute_query(query)
 
+        # Fetch column names
+        columns = ["file", "transcription"]
+
+        # Open the CSV file for writing
+        output_folder = PROJECTS_DIR + "/"  + dataset_name  + "/" + sub_dataset
+        output_csv = output_folder + "/metadata.csv"
+        with open(output_csv, mode='w', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file)
+
+            # Write the column headers
+            writer.writerow(columns)
+
+            # Write the rows
+            writer.writerows(rs)
+
+        open_folder(output_folder)
 
 def delete_transcriptions(fields):
     transcription = fields.get('transcription')
@@ -129,7 +154,6 @@ def delete_transcriptions(fields):
 
     transcriptions =transcription.split(',')
     for id in transcriptions:
-        print(id)
         row = db.read_by_key('sentence', 'id', int(id))
         row_dict = json.loads(row)
         file_name= row_dict['file']
@@ -173,7 +197,32 @@ def deleteSubDataset(fields):
     delete_file(file_path)
     return True
 
+def open_folder(path):
+    """
+    Open a folder in the system's file explorer.
 
+    Parameters:
+    - path (str): Path to the folder to open.
+    """
+    # Get the directory of the current Python script
+    win_path = path.replace("/", "\\")
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    script_dir= script_dir.replace("/lib", "")
+    # Construct the full path to the folder
+    folder_path = os.path.join(script_dir, win_path)
+    try:
+        if platform.system() == "Windows":  # For Windows
+            script_dir= script_dir.replace("\\lib", "")
+            folder_path = os.path.join(script_dir, win_path)
+            os.startfile(folder_path)
+        elif platform.system() == "Darwin":  # For macOS
+            subprocess.run(["open", folder_path])
+        elif platform.system() == "Linux":  # For Linux
+            subprocess.run(["xdg-open", folder_path])
+        else:
+            print("Unsupported OS")
+    except Exception as e:
+        print(f"An error occurred: {e}")
 
 def get_content_type(self, file_path):
     """Determine the content type based on file extension"""
