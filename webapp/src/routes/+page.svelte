@@ -316,6 +316,7 @@
               aria-label="Export the dataset"
               on:click={exportDataset}
               class:hidden={!subDataset}
+              title="Export the dataset"
             >
               <svg class=" w-6 h-6 text-gray-600">
                 <use href="icons.svg#icon-export"></use>
@@ -487,6 +488,7 @@
                     class:hidden={sentence.isRecording}
                     on:click={(event) => startRecording(sentence)}
                     aria-label="Microphone"
+                    title="Start recording"
                   >
                     <svg class=" w-6 h-6 text-gray-600">
                       <use href="icons.svg#icon-mic"></use>
@@ -498,6 +500,7 @@
                     on:click={(event) => stopRecording()}
                     class="mic-button p-2"
                     aria-label="Microphone Disabled"
+                    title="Stop recording"
                   >
                     <svg class=" w-6 h-6 text-red-700">
                       <use href="icons.svg#icon-mic"></use>
@@ -506,6 +509,7 @@
                   <button
                     on:click={(event) => confirmRemoveRecording([sentence.id])}
                     aria-label="Delete the sentence"
+                    title="Delete the sentence"
                   >
                     <svg class=" w-6 h-6 text-red-700">
                       <use href="icons.svg#icon-trash"></use>
@@ -515,6 +519,7 @@
                     class:hidden={!sentence.recorded}
                     on:click={(event) => confirmRemoveRecording(sentence)}
                     aria-labelledby="Delete audio only"
+                    title="Delete audio only"
                   >
                     <svg class=" w-6 h-6 text-gray-700">
                       <use href="icons.svg#icon-wav"></use>
