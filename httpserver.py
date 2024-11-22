@@ -3,7 +3,7 @@ import re
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from urllib.parse import urlparse
-from lib.tools import PROJECTS_DIR, add_dataset, createProjectStructure, delete_transcriptions, deleteDataset, deleteSubDataset, get_content_type, get_db, get_project_dir, import_transcriptions, list_directories, removeRecording, upload_audio
+from lib.tools import PROJECTS_DIR, add_dataset, createProjectStructure, delete_transcriptions, deleteDataset, deleteSubDataset, export_table_to_csv, get_content_type, get_db, get_project_dir, import_transcriptions, list_directories, removeRecording, upload_audio
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 #import cgi
@@ -204,7 +204,14 @@ class SimpleHandler(BaseHTTPRequestHandler):
                     self.wfile.write(b'{"status": "success", "message": "dataset added"}')
                 except Exception as e:
                     print(e)
-                    self.wfile.write(b'{"status": "Failed", "message": "data not add"}')           
+                    self.wfile.write(b'{"status": "Failed", "message": "dataset not add"}')       
+            elif self.path == '/export_dataset':
+                try:
+                    export_table_to_csv(fields)
+                    self.wfile.write(b'{"status": "success", "message": "dataset exported"}')
+                except Exception as e:
+                    print(e)
+                    self.wfile.write(b'{"status": "Failed", "message": "dataset not exported"}')       
             else:
                 self.send_response(400)
                 self.send_cors_headers()  # Add CORS headers to each response

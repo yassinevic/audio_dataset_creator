@@ -267,6 +267,27 @@
       });
     newSentance = "";
   }
+
+  function exportDataset() {
+    const formData = new FormData();
+    formData.append("datasetId", dataset.id.toString());
+    formData.append("subDataset", subDataset ?? "");
+    formData.append("datasetName", dataset.name);
+
+    fetch(`${BACKEND}/export_dataset`, {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.status === "success") {
+          getSentences(currentSentenceStatus);
+        } else {
+          alert("Failed to save the recording.");
+        }
+      });
+    newSentance = "";
+  }
 </script>
 
 <svelte:head>
@@ -289,6 +310,17 @@
           <div class="flex place-items-center">Dataset:</div>
           <div class="flex place-items-center pl-2">
             <DropDown onDatasetSelected={setCurrentDataset}></DropDown>
+          </div>
+          <div class="flex place-items-center pl-2">
+            <button
+              aria-label="Export the dataset"
+              on:click={exportDataset}
+              class:hidden={!subDataset}
+            >
+              <svg class=" w-6 h-6 text-gray-600">
+                <use href="icons.svg#icon-export"></use>
+              </svg></button
+            >
           </div>
         </div>
       </div>

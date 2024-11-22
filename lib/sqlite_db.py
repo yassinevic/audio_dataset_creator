@@ -56,7 +56,6 @@ class SQLiteDBHelper:
         if recorded>-1:
             sql = f"SELECT * FROM {table} WHERE recorded = {recorded} AND dataset = {dataset} AND sub_dataset = '{sub_dataset}' ORDER BY id DESC LIMIT {page_size} OFFSET {offset}"
 
-        print(sql)
         self.cursor.execute(sql)
         rows = self.cursor.fetchall()
         self.close()
