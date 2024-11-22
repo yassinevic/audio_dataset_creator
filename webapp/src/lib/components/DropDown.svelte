@@ -103,7 +103,8 @@
 
     <button
       class="pt-1"
-      aria-label="dropdown"
+      title="Open dataset list"
+      aria-label="Open dataset list"
       on:click={() => (showMenu = !showMenu)}
     >
       <svg class="h-6 w-6 text-gray-500">
@@ -131,6 +132,7 @@
           class="text-gray-400"
           on:click={addDataset}
           aria-labelledby="Add dataset"
+          title="Add dataset"
         >
           <svg class="h-5 w-5 text-gray-400">
             <use href="icons.svg#icon-plus"></use>
@@ -165,7 +167,8 @@
               dataSetToDelete = dataset;
               showConfirmationBox = true;
             }}
-            aria-label="Delete the sentence"
+            aria-label="Delete this dataset"
+            title="Delete this dataset"
             class="pr-2"
           >
             <svg class=" w-5 h-5 text-red-700">

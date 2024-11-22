@@ -106,8 +106,6 @@
       <button
         on:click={() => setCurrentSubset(value)}
         class="flex items-center w-full space-x-4 h-12"
-        title="Open dataset list"
-        aria-label="Open dataset list"
         >
         <!-- Icon -->
         <div class={colors[index]}>
@@ -129,9 +127,9 @@
           subDataSetToDelete = value;
           showConfirmationBox = true;
         }}
-        aria-label="Delete this dataset"
+        aria-label="Delete this sub dataset"
         class="pr-2"
-                title="Delete this dataset"
+                title="Delete this sub dataset"
       >
         <svg class=" w-5 h-5 text-red-700">
           <use href="icons.svg#icon-trash"></use>
