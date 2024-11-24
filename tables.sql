@@ -29,3 +29,14 @@ CREATE TABLE sentence (
     speaker       INTEGER     REFERENCES speaker (id),
     emotion       TEXT
 );
+
+
+CREATE TRIGGER set_file_name
+         AFTER INSERT
+            ON sentence
+      FOR EACH ROW
+BEGIN
+    UPDATE sentence
+       SET file = 'file_' || printf('%05d', NEW.id) || '.wav'
+     WHERE id = NEW.id;
+END;
