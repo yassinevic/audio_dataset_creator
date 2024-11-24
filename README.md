@@ -4,7 +4,7 @@
 **Audio Dataset Creator** Audio Dataset Creator is a user-friendly tool designed to facilitate the creation and management of audio datasets for machine learning and speech recognition projects. It allows users to record, organize, and annotate audio files efficiently, ensuring datasets are structured and easy to use. Ideal for building training and testing datasets, the tool streamlines the process of preparing audio data for various applications..
 
 
-![image](https://github.com/user-attachments/assets/05106226-d997-42f4-8eb4-606c8126361d)
+![image](https://github.com/user-attachments/assets/24b9e153-23d4-471c-942a-f94d1756c5de)
 
 
 
