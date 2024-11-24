@@ -4,7 +4,7 @@
 **Audio Dataset Creator** Audio Dataset Creator is a user-friendly tool designed to facilitate the creation and management of audio datasets for machine learning and speech recognition projects. It allows users to record, organize, and annotate audio files efficiently, ensuring datasets are structured and easy to use. Ideal for building training and testing datasets, the tool streamlines the process of preparing audio data for various applications..
 
 
-![image](https://github.com/user-attachments/assets/1bdce12a-1f4c-44c2-8618-8201e3d150ea)
+![image](https://github.com/user-attachments/assets/05106226-d997-42f4-8eb4-606c8126361d)
 
 
 
@@ -22,6 +22,22 @@
 ### Prerequisites
 - Python 3.8 or higher
 - Node.js and npm
+- FFmpeg
+
+### Setting Up FFmpeg
+
+To use certain features of this application that require FFmpeg (e.g., audio or video processing), follow these steps:
+
+1. **Download FFmpeg**:
+   - Visit the official FFmpeg website: [https://ffmpeg.org/download.html](https://ffmpeg.org/download.html)
+   - Choose the appropriate version for your operating system (Windows, macOS, or Linux).
+
+2. **Extract the FFmpeg Files**:
+   - After downloading, extract the FFmpeg archive to a folder on your machine.
+
+3. **Place FFmpeg in the `tools` Folder**:
+   - Copy the extracted FFmpeg executable files (e.g., `ffmpeg`, `ffplay`, `ffprobe`) to the `tools` folder in your project directory.
+
 
 ### Clone the Repository
 ```bash
