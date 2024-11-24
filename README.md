@@ -90,6 +90,15 @@ audio_dataset_creator/
 
 ---
 
+### TODO
+
+- [ ] **Manage Speakers**:  
+  Implement functionality to manage multiple speakers, including:
+  - Adding speaker metadata (e.g., name, age, gender, accent).
+  - Assigning specific sentences or datasets to individual speakers.
+  - Exporting speaker-specific datasets.
+
+    
 ## Contributing
 
 We welcome contributions! Please follow these steps:
