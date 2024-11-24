@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import ConfirmationBox from "./ConfirmationBox.svelte";
-  import type { Dataset, DatasetResponse } from "../types/sentence";
+  import type { Dataset, DatasetResponse } from "../types/model";
   import { sentencesStore } from "$lib/stores/store";
 
   let BACKEND = import.meta.env.VITE_BACKEND || "";
@@ -9,14 +9,27 @@
   let datasets: Dataset[] = [];
   let currentDataset: Dataset;
   let dataSetToDelete: Dataset | null;
+  let container: HTMLDivElement; // Reference to the component's DOM element
 
   let newDatasetName: string = "";
   export let onDatasetSelected: (dataset: Dataset) => void;
   onMount(() => {
     {
       getDatasets();
+
+      document.addEventListener("click", handleOutsideClick);
+
+      return () => {
+        document.removeEventListener("click", handleOutsideClick);
+      };
     }
   });
+
+  function handleOutsideClick(event: Event) {
+    if (!container.contains(event.target as Node | null)) {
+      showMenu = false; // Close if clicked outside the component
+    }
+  }
 
   function getDatasets() {
     fetch(`${BACKEND}/get_datasets`)
@@ -95,7 +108,7 @@
   onRejected={rejectRemoveRecording}
 ></ConfirmationBox>
 
-<div class="flex flex-col" on:blur={() => (showMenu = false)}>
+<div class="flex flex-col" on:blur={() => (showMenu = false)} bind:this={container}>
   <div class="relative flex items-center">
     <span class="text-gray-400 pr-4"
       >{currentDataset?.name ?? "Select a Dataset"}</span

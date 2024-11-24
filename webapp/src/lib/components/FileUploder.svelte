@@ -1,13 +1,22 @@
 <script lang="ts">
-  import type { Dataset, SubDataSet } from "../types/sentence";
-
+  import {
+    Emotion,
+    type Dataset,
+    type Entity,
+    type Speaker,
+    type SubDataSet,
+    type TranscriptionFile,
+  } from "../types/model";
+  import EntitiesList from "./EntitiesList.svelte";
 
   let BACKEND = import.meta.env.VITE_BACKEND || "";
   export let dataset!: Dataset;
   export let subDataset!: SubDataSet;
   export let onFileUploded: (status: boolean) => void;
-
-  let files: File[] = [];
+  export let speakers: Entity[] = [];
+  export let emotions: any[] = [];
+  //let files: File[] = [];
+  let transcriptionFiles: TranscriptionFile[] = [];
   let dragOver = false;
   // Handle file drop
   function handleDrop(event: DragEvent) {
@@ -15,31 +24,47 @@
     dragOver = false;
 
     // Get the dropped files
-    files = Array.from(event?.dataTransfer?.files ?? []);
-    files = [...files];
+    let files = Array.from(event?.dataTransfer?.files ?? []);
+
+    let _transcriptionFiles = files.map((file: File) => {
+      return {
+        file: file,
+        emotion: Emotion.NEUTRAL,
+        speaker: speakers[0].value ?? 1,
+      };
+    });
+
+    transcriptionFiles = [...transcriptionFiles, ..._transcriptionFiles];
   }
 
   function startUpload() {
-    const textFiles = files.filter((file) => file.type === "text/plain");
+    const textFiles = transcriptionFiles.filter(
+      (transcriptionFile: TranscriptionFile) =>
+        transcriptionFile.file.type === "text/plain"
+    );
     let text_lines = "";
+
     // Read the contents of each text file
-    textFiles.forEach((file, index) => {
+    textFiles.forEach((transcriptionFile: TranscriptionFile, index: number) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         let file_value = e.target?.result as string; // Assign the file content to file_value
         text_lines += file_value + "\n";
 
         if (index === textFiles.length - 1) {
-          files = [];
-          let json = toJson(text_lines.split("\n"));
+          transcriptionFiles = [];
+          let json = toJson(
+            text_lines.split("\n"),
+            transcriptionFile.emotion,
+            transcriptionFile.speaker
+          );
           json = json.trim();
           if (json != "") {
-            saveFile(json , subDataset, dataset);
+            saveFile(json, subDataset, dataset);
           }
-          
         }
       };
-      reader.readAsText(file);
+      reader.readAsText(transcriptionFile.file);
     });
   }
 
@@ -49,7 +74,16 @@
     const selectedFiles = Array.from(
       (event.target as HTMLInputElement).files ?? []
     );
-    files = [...files, ...selectedFiles];
+
+    let _transcriptionFiles = selectedFiles.map((file: File) => {
+      return {
+        file: file,
+        emotion: Emotion.NEUTRAL,
+        speaker: speakers[0].value,
+      };
+    });
+
+    transcriptionFiles = [...transcriptionFiles, ..._transcriptionFiles];
   }
 
   // Handle drag over
@@ -65,19 +99,26 @@
 
   // Handle file removal
   function removeFile(index: number) {
-    files.splice(index, 1);
-    files = [...files];
+    transcriptionFiles.splice(index, 1);
+    transcriptionFiles = [...transcriptionFiles];
   }
 
-  function toJson(transcriptions: string[]) {
-    const jsonOutput = transcriptions.filter((transcription) => transcription.trim() !== "").map((transcription, index) => ({
-      transcription: transcription.trim(),
-    }));
+  function toJson(transcriptions: string[], emotion: Emotion, speaker: number) {
+    const jsonOutput = transcriptions
+      .filter((transcription) => transcription.trim() !== "")
+      .map((transcription, index) => ({
+        transcription: transcription.trim(),
+        emotion: emotion,
+        speaker: speaker,
+      }));
     return JSON.stringify(jsonOutput, null, 2);
   }
 
-  function saveFile(fileContent: string, subDataset:SubDataSet, dataset:Dataset) {
-
+  function saveFile(
+    fileContent: string,
+    subDataset: SubDataSet,
+    dataset: Dataset
+  ) {
     const formData = new FormData();
     formData.append("transcription", fileContent);
     formData.append("sub_dataset", subDataset.toString());
@@ -94,7 +135,7 @@
           return;
         }
         onFileUploded(true);
-        files = [];
+        transcriptionFiles = [];
         alert("Saved");
       });
   }
@@ -126,13 +167,36 @@
     <p class="text-xs text-gray-400 mt-2">Only text files are Allowed.</p>
   </div>
 
-  {#if files.length > 0}
+  {#if transcriptionFiles.length > 0}
     <div class="mt-4 space-y-2 w-full">
       <ul>
-        {#each files as file, index (file.name)}
+        {#each transcriptionFiles as transcriptionFile, index}
           <li class="flex justify-between items-center border-b py-2">
-            <span class="text-sm text-gray-700">{file.name}</span>
+            <div class="flex items-center gap-1">
+              <EntitiesList
+                title="({speakers.find(
+                  (_speaker) => _speaker.value === (transcriptionFile.speaker ?? 0)
+                )?.label})Set selection speaker"
+                icon="speaker"
+                entities={speakers}
+                onEntitySelected={(entity: any) => {
+                  transcriptionFile.speaker = entity.value;
+                }}
+              ></EntitiesList>
 
+              <EntitiesList
+                title="Set selection emotion"
+                icon={transcriptionFile.emotion}
+                entities={emotions}
+                onEntitySelected={(entity: any) => {
+                  transcriptionFile.emotion = entity.value;
+                }}
+              ></EntitiesList>
+
+              <span class="text-sm text-gray-700"
+                >{transcriptionFile.file.name}</span
+              >
+            </div>
             <button
               on:click={() => removeFile(index)}
               aria-labelledby="Remove Audio File"

@@ -6,17 +6,22 @@ import platform
 import shutil
 import subprocess
 import sys
+import wave
 from lib.sqlite_db import SQLiteDBHelper
 
 sys.path.insert(0, os.path.dirname(__file__))
 
 PROJECTS_DIR = "projects"
 
+DB_FILE = os.path.join(f"{os.getcwd()}/db/data.db").replace('\\', '/')
+SQL_FILE = os.path.join(f"{os.getcwd()}/tables.sql").replace('\\', '/')
+
 # Initialize the database
-db = SQLiteDBHelper("db/data.db")
+db = SQLiteDBHelper(DB_FILE, SQL_FILE)
 
 def get_db():
     return db
+
 
 def get_project_dir():
     return os.path.join(PROJECTS_DIR)
@@ -74,20 +79,59 @@ def delete_and_recreate_folder(folder_path):
 
 
 def upload_audio( fields):
-        audio_data = fields.get("audio", {}).get("content")
+        #audio_data = fields.get("audio", {}).get("content")
+        audio_field = fields.get("audio")
+        audio_data = audio_field.get("content")
         sentence_id = int(fields.get('id'))
         dataset = fields.get('dataset')
         subset= fields.get('subset')
 
         file = fields.get('file')
-        filename = PROJECTS_DIR  +"/" + dataset + "/" + subset + "/audio/"  + file
-        with open(filename, "wb") as audio_file:
+        file_path_webm = PROJECTS_DIR  +"/" + dataset + "/" + subset + "/audio/"  + file+".webm"
+        with open(file_path_webm, "wb") as audio_file:
             audio_file.write(audio_data)
 
-        db.flag('sentence', 1, sentence_id)
+        file_path_wav = PROJECTS_DIR  +"/" + dataset + "/" + subset + "/audio/"  + file
+        convert_webm_to_wav(file_path_webm,file_path_wav)
+        delete_file(file_path_webm)
+
+        duration = get_wav_duration(file_path_wav)
+        print(f"The duration of the WAV file is {duration:.2f} seconds.")
+
+        """   "start_time": 0.0,
+        "end_time": duration,
+        "speaker": "Speaker 1",
+        "emotion": "neutral" """
+
+        db.update(
+        table="sentence",
+        data={
+            "recorded": 1,
+            "start_time": 0,
+            "end_time": duration,
+        },
+        condition="id = ?",
+        condition_params=(sentence_id,))
+
         json_data = db.read_by_key('sentence', 'id', sentence_id)
         return (json_data).encode()
 
+def convert_webm_to_wav(input_file, output_file):
+
+    # Check if the output file already exists, and delete it if so
+    if os.path.isfile(output_file):
+        print(f"Warning: {output_file} already exists. Overwriting the file.")
+        os.remove(output_file)  # Remove the existing file
+
+    # Run FFmpeg command to convert webm to wav
+    ffmpeg = 'tools/ffmpeg'
+    command = [ffmpeg, '-i', input_file, output_file]
+    
+    try:
+        subprocess.run(command, check=False)
+        print(f"Conversion successful: {output_file}")
+    except subprocess.CalledProcessError as e:
+        print(f"Error during conversion: {e}")
 
 def import_transcriptions(fields):
     transcription = fields.get('transcription')
@@ -105,6 +149,25 @@ def add_dataset(fields):
     }
     db.insert('dataset',my_dict)
     return True
+
+def update_sentance(fields):
+    speaker = fields.get('speaker')
+    emotion = fields.get('emotion')
+    transcription = fields.get('transcription')
+    id = int(fields.get('id'))
+
+    db.update(
+    table="sentence",
+    data={
+        "speaker": speaker,
+        "emotion": emotion,
+        "transcription": transcription,
+    },
+    condition="id = ?",
+    condition_params=(id,)
+)
+    return True
+
 
 
 def createFolder(folder_path):
@@ -127,11 +190,11 @@ def export_table_to_csv(fields):
         dataset_id = int(fields.get('datasetId'))
         dataset_name = fields.get('datasetName')
         # Query to fetch all data from the table
-        query = f"SELECT 'audio/' || file AS file, transcription FROM sentence WHERE dataset = {dataset_id} AND sub_dataset = '{sub_dataset}'"
+        query = f"SELECT 'audio/' || file AS file, transcription, end_time as duration, sp.name as speaker, emotion FROM sentence,speaker sp WHERE sp.id = speaker AND dataset = {dataset_id} AND sub_dataset = '{sub_dataset}' and recorded = 1"
         rs = db.execute_query(query)
 
         # Fetch column names
-        columns = ["file", "transcription"]
+        columns = ["file", "transcription", "duration", "speaker", "emotion"]
 
         # Open the CSV file for writing
         output_folder = PROJECTS_DIR + "/"  + dataset_name  + "/" + sub_dataset
@@ -164,7 +227,7 @@ def delete_transcriptions(fields):
     return True
 
 def removeRecording(fields):
-    sentence_id = int(fields.get('id'))
+    id = int(fields.get('id'))
     file = fields.get('file')
     sub_dataset = fields.get('subset')
     dataset = fields.get('dataset')
@@ -172,7 +235,15 @@ def removeRecording(fields):
     # Attempt to delete the file and respond with success or failure
     file_path = PROJECTS_DIR + "/"  + dataset+ "/" + sub_dataset + "/audio/"  + "/" + file
     if delete_file(file_path):
-        db.flag('sentence', 0, sentence_id)
+        db.update(
+        table="sentence",
+        data={
+            "recorded": 1,
+        },
+        condition="id = ?",
+        condition_params=(id,))
+
+        
 
 def deleteDataset(fields):
     dataset_id = int(fields.get('datasetId'))
@@ -224,7 +295,45 @@ def open_folder(path):
     except Exception as e:
         print(f"An error occurred: {e}")
 
-def get_content_type(self, file_path):
+
+def get_wav_duration(file_path):
+    # Check if file exists
+    if not os.path.isfile(file_path):
+        print(f"Error: The file {file_path} does not exist.")
+        return None
+
+    try:
+        # Attempt to open the WAV file
+        with wave.open(file_path, 'rb') as wav_file:
+            # Check if it's a valid WAV file by looking for the "RIFF" format
+            if wav_file.getcomptype() != 'NONE':  # Not PCM format
+                print(f"Error: The file {file_path} is not a valid uncompressed WAV file.")
+                return None
+
+            # Get the number of frames and frame rate (sample rate)
+            num_frames = wav_file.getnframes()
+            frame_rate = wav_file.getframerate()
+            
+            if frame_rate == 0:
+                print(f"Error: Invalid frame rate in the file {file_path}.")
+                return None
+
+            # Calculate and return the duration
+            duration = num_frames / float(frame_rate)
+            return duration
+
+    except wave.Error as e:
+        # Handle wave-related errors (e.g., file is not a valid WAV)
+        print(f"Error: Failed to read the WAV file {file_path}. Details: {e}")
+        return None
+    except Exception as e:
+        # General exception handling
+        print(f"Error: An unexpected error occurred while processing the file {file_path}. Details: {e}")
+        return None
+
+
+    
+def get_content_type( file_path):
     """Determine the content type based on file extension"""
     ext = os.path.splitext(file_path)[1].lower()
     if ext == '.html':

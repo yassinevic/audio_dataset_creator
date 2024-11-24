@@ -3,7 +3,7 @@ import re
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from urllib.parse import urlparse
-from lib.tools import PROJECTS_DIR, add_dataset, createProjectStructure, delete_transcriptions, deleteDataset, deleteSubDataset, export_table_to_csv, get_content_type, get_db, get_project_dir, import_transcriptions, list_directories, removeRecording, upload_audio
+from lib.tools import PROJECTS_DIR, add_dataset, createProjectStructure, delete_transcriptions, deleteDataset, deleteSubDataset, export_table_to_csv, get_content_type, get_db, get_project_dir, import_transcriptions, list_directories, removeRecording, update_sentance, upload_audio
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 #import cgi
@@ -22,20 +22,21 @@ class SimpleHandler(BaseHTTPRequestHandler):
             self.end_headers()
             with open(f"{static_dir}/200.html", 'rb') as file:
                 self.wfile.write(file.read())
-        elif self.path .startswith('/_app/'):
+        elif self.path.startswith('/_app/'):
             file_path = os.path.join(f"{os.getcwd()}/{static_dir}", self.path.lstrip('/'))
             if os.path.exists(file_path):
                 content_type = get_content_type(file_path)
                 self.serve_file(file_path, content_type)
             else:
                 self.send_error(404, f"File not found: {self.path} {os.getcwd()}/{static_dir}")
-        elif self.path.endswith('/.wav/'):
-            file_path = get_project_dir() +"/" + os.path.join(f"{os.getcwd()}", self.path.lstrip('/'))
+        elif self.path.endswith('.wav'):
+            file_path = os.path.join(f"{os.getcwd()}/{get_project_dir()}", self.path.lstrip('/'))
+            file_path = file_path.replace('\\', '/')
             if os.path.exists(file_path):
                 content_type = get_content_type(file_path)
                 self.serve_file(file_path, content_type)
             else:
-                self.send_error(404, f"File not found: {self.path} {os.getcwd()}/{static_dir}")
+                self.send_error(404, f"File not found: {file_path}")
         elif self.path.startswith('/get_sentences'):
             self.send_header('Content-type', 'application/json')
             self.end_headers()
@@ -57,7 +58,7 @@ class SimpleHandler(BaseHTTPRequestHandler):
                 recorded = -1
 
             count = get_db().count_sentences('sentence', recorded, dataset, sub_dataset)
-            json_data =get_db().read_sentences('sentence', recorded, dataset, sub_dataset, page, size)
+            json_data = get_db().read_sentences('sentence', recorded, dataset, sub_dataset, page, size)
            
             response = {
                "count": count,
@@ -65,7 +66,15 @@ class SimpleHandler(BaseHTTPRequestHandler):
                "sentence": json.loads(json_data)
             }
             self.wfile.write(json.dumps(response, ensure_ascii=False).encode())
-
+        elif self.path.startswith('/get_speakers'):
+            self.send_header('Content-type', 'application/json')
+            self.end_headers()
+            try:
+                response = get_db().read_all('speaker')
+                self.wfile.write(response.encode())
+            except Exception as e:
+                print(e)
+                self.wfile.write(b'{"status": "Failed", "message": "dataset not exported"}')
         elif self.path == '/get_datasets':
             self.send_header('Content-type', 'application/json')
             self.end_headers()
@@ -212,6 +221,13 @@ class SimpleHandler(BaseHTTPRequestHandler):
                 except Exception as e:
                     print(e)
                     self.wfile.write(b'{"status": "Failed", "message": "dataset not exported"}')       
+            elif self.path == '/update_sentance':
+                try:
+                    update_sentance(fields)
+                    self.wfile.write(b'{"status": "success", "message": "dataset exported"}')
+                except Exception as e:
+                    print(e)
+                    self.wfile.write(b'{"status": "Failed", "message": "dataset not exported"}')   
             else:
                 self.send_response(400)
                 self.send_cors_headers()  # Add CORS headers to each response

@@ -6,7 +6,7 @@
     type Dataset,
     type Sentence,
     type SentenceResponse,
-  } from "../types/sentence";
+  } from "../types/model";
 
   import ConfirmationBox from "./ConfirmationBox.svelte";
 
