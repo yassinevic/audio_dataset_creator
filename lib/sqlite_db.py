@@ -3,8 +3,9 @@ import sqlite3
 from typing import Any, Dict, List, Optional
 
 class SQLiteDBHelper:
-    def __init__(self, db_path: str):
+    def __init__(self, db_path: str, sql_file: str):
         self.db_path = db_path
+        self.sql_file = sql_file
         self.connection = None
 
     def connect(self):
@@ -12,6 +13,34 @@ class SQLiteDBHelper:
         self.connection = sqlite3.connect(self.db_path)
         self.connection.row_factory = sqlite3.Row  # Allows access to columns by name
         self.cursor = self.connection.cursor()
+        print(f"Connected to database: {self.db_path}")
+        
+        # Ensure all tables exist
+        self.ensure_tables_exist()
+
+    def ensure_tables_exist(self):
+        """Check if the main table exists, and if not, execute the SQL script."""
+        try:
+            # Check if any table exists by checking the `sentence` table (assumes it's crucial)
+            self.cursor.execute("""
+                SELECT name FROM sqlite_master 
+                WHERE type='table' AND name='sentence';
+            """)
+            table_exists = self.cursor.fetchone()
+
+            if not table_exists:
+                print("Required tables do not exist. Executing SQL script to create them...")
+                
+                # Read and execute the entire SQL file
+                with open(self.sql_file, 'r') as f:
+                    sql_script = f.read()
+                self.cursor.executescript(sql_script)
+                self.connection.commit()
+                print("All tables created successfully.")
+            else:
+                print("Tables already exist.")
+        except sqlite3.Error as e:
+            print(f"Error while ensuring table existence: {e}")
 
     def close(self):
         """Close the database connection."""
@@ -35,12 +64,20 @@ class SQLiteDBHelper:
         self.connection.commit()
         self.close()
 
-
-    def flag(self, table: str, is_recorded: int, id:int):
-        """Insert a record into a table."""
+    def update(self, table: str, data: dict, condition: str, condition_params: tuple):
+        """
+        Update a record in a table.
+        
+        Args:
+            table (str): Name of the table.
+            data (dict): Dictionary of columns and their new values.
+            condition (str): SQL condition for the update (e.g., "id = ?").
+            condition_params (tuple): Parameters to safely fill in the condition placeholders.
+        """
         self.connect()
-        sql = f"UPDATE {table} set recorded  = ? where id = ?"
-        self.cursor.execute(sql, (is_recorded,id))
+        set_clause = ', '.join(f"{key} = ?" for key in data.keys())
+        sql = f"UPDATE {table} SET {set_clause} WHERE {condition}"
+        self.cursor.execute(sql, tuple(data.values()) + condition_params)
         self.connection.commit()
         self.close()
 
@@ -52,9 +89,11 @@ class SQLiteDBHelper:
         offset = (page - 1) * page_size
     
         # SQL query with LIMIT and OFFSET for pagination
-        sql = f"SELECT * FROM {table} WHERE dataset = {dataset} AND sub_dataset = '{sub_dataset}' ORDER BY id DESC LIMIT {page_size} OFFSET {offset}"
+        sql = f"SELECT s.*, sp.name as speaker_name FROM {table} as s  , speaker as sp WHERE s.speaker = sp.id AND dataset = {dataset} AND sub_dataset = '{sub_dataset}' ORDER BY id DESC LIMIT {page_size} OFFSET {offset}"
         if recorded>-1:
-            sql = f"SELECT * FROM {table} WHERE recorded = {recorded} AND dataset = {dataset} AND sub_dataset = '{sub_dataset}' ORDER BY id DESC LIMIT {page_size} OFFSET {offset}"
+            sql = f"SELECT s.*, sp.name as speaker_name FROM {table} as s  , speaker as sp WHERE s.speaker = sp.id AND recorded = {recorded} AND dataset = {dataset} AND sub_dataset = '{sub_dataset}' ORDER BY id DESC LIMIT {page_size} OFFSET {offset}"
+
+        print(sql)
 
         self.cursor.execute(sql)
         rows = self.cursor.fetchall()
@@ -112,7 +151,7 @@ class SQLiteDBHelper:
         """Read paginated key-value pairs from the database."""
         self.connect()
     
-        sql = f"SELECT count(1)  as total FROM {table}"
+        sql = f"SELECT count(1) as total FROM {table}"
         if filter>-1:
             sql = f"SELECT count(1)  as total FROM {table} WHERE recorded = {filter}"
 
@@ -142,7 +181,19 @@ class SQLiteDBHelper:
         else:
             return None  # Return None if no record was found
 
-
+    def read_all(self, table: str) -> Optional[dict]:
+        """Read a record by a specified key and return it as a dictionary."""
+        self.connect()
+        sql = f"SELECT * FROM {table}"
+        self.cursor.execute(sql)
+        rows = self.cursor.fetchall()
+        self.close()
+        # Convert rows to a list of dictionaries
+        data = [dict(row) for row in rows]
+        # Convert the list of dictionaries to JSON
+        json_data = json.dumps(data, indent=4)
+        return json_data
+        
     def save_json_data(self, table: str, json_data: list, dataset: int, sub_dataset: str):
         if not all(isinstance(item, dict) for item in json_data):
             raise ValueError("json_data must be a list of JSON objects")

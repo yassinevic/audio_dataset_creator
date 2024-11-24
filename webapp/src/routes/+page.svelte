@@ -1,12 +1,15 @@
 <script lang="ts">
   import {
+    Emotion,
     SentenceStatus,
     SubDataSet,
     type Dataset,
+    type Entity,
     type Sentence,
     type SentenceID,
     type SentenceResponse,
-  } from "$lib/types/sentence";
+    type Speaker,
+  } from "$lib/types/model";
 
   import AudioPlayer from "$lib/components/AudioPlayer.svelte";
   import ConfirmationBox from "$lib/components/ConfirmationBox.svelte";
@@ -15,12 +18,14 @@
   import Pagination from "$lib/components/Pagination.svelte";
   import Subset from "$lib/components/Subset.svelte";
   import { sentencesStore } from "$lib/stores/store";
+  import EntitiesList from "$lib/components/EntitiesList.svelte";
+  import { onMount } from "svelte";
   let BACKEND = import.meta.env.VITE_BACKEND || "";
 
   // Reactive subscription to the store
   $: sentences = $sentencesStore;
 
-  let deletionselectedValues: number[] = [];
+  let selectedSentences: Sentence[] = [];
   let selectedSentence: Sentence | null = null;
   let dataset: Dataset;
   let subDataset: SubDataSet | null = null;
@@ -33,6 +38,12 @@
   let currentSentenceStatus = SentenceStatus.ALL;
   let newSentance = "";
   $: currentPage, firePagination();
+
+  onMount(() => {
+    {
+      getSpeaker();
+    }
+  });
 
   function firePagination() {
     if (firstLoad) return;
@@ -74,7 +85,8 @@
           };
 
           mediaRecorder.onstop = () => {
-            const audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+            const audioBlob = new Blob(audioChunks, { type: "audio/webm" });
+
             uploadRecording(audioBlob, sentence);
             audioChunks = [];
           };
@@ -111,18 +123,18 @@
   function rejectRemoveRecording() {
     showConfirmationBox = false;
     selectedSentence = null;
-    deletionselectedValues = [];
+    selectedSentences = [];
   }
 
   function confirmRemoveRecording(
-    sentence: Sentence | SentenceID[] | SentenceStatus
+    sentence: Sentence | Sentence[] | SentenceStatus
   ) {
     showConfirmationBox = true;
     if (typeof sentence === "object" && !Array.isArray(sentence)) {
-      deletionselectedValues = [];
+      selectedSentences = [];
       selectedSentence = sentence;
     } else if (Array.isArray(sentence)) {
-      deletionselectedValues = [...sentence];
+      selectedSentences = [...sentence];
       selectedSentence = null;
     } else {
       selectedSentence = null;
@@ -131,7 +143,7 @@
 
   function deletionConfirmed() {
     showConfirmationBox = false;
-    if (deletionselectedValues.length > 0) {
+    if (selectedSentences.length > 0) {
       deleteSelection();
       return;
     }
@@ -175,12 +187,13 @@
       });
   }
   function deleteSelection() {
-    if (deletionselectedValues.length === 0) {
+    if (selectedSentences.length === 0) {
       return;
     }
 
+    let ids = selectedSentences.map((sentence) => sentence.id);
     const formData = new FormData();
-    formData.append("transcription", deletionselectedValues.join(","));
+    formData.append("transcription", ids.join(","));
     formData.append("dataset", dataset.name);
     formData.append("subset", subDataset ?? "");
 
@@ -192,7 +205,7 @@
       .then((result) => {
         if (result.status === "success") {
           getSentences(currentSentenceStatus);
-          deletionselectedValues = [];
+          selectedSentences = [];
         } else {
           alert("Failed to save the recording.");
         }
@@ -215,18 +228,10 @@
       .then((result) => {
         if (result.status === "success") {
           sentence.recorded = true;
+          getSentences(currentSentenceStatus);
         } else {
           alert("Failed to save the recording.");
         }
-
-        sentencesStore.update((sentences) => ({
-          ...sentences,
-          sentence: sentences.sentence.map((_sentence: Sentence) =>
-            _sentence.id === (sentence?.id ?? -1)
-              ? { ..._sentence, isRecording: false, recorded: true }
-              : _sentence
-          ),
-        }));
       });
   }
 
@@ -245,6 +250,8 @@
     let jsonOutput = [
       {
         transcription: newSentance.trim(),
+        emotion: Emotion.NEUTRAL,
+        speaker: speakers[0].value ?? 1,
       },
     ];
     let transcription = JSON.stringify(jsonOutput, null, 2);
@@ -288,6 +295,49 @@
       });
     newSentance = "";
   }
+
+  let emotions = Object.entries(Emotion).map((emotion) => {
+    return {
+      value: emotion[1],
+      label: emotion[1],
+      icon: emotion[1],
+    };
+  });
+  let speakers: Entity[] =[];
+  function getSpeaker() {
+    fetch(`${BACKEND}/get_speakers`)
+      .then((response) => response.json())
+      .then((_speakers: Speaker[]) => {
+        speakers = _speakers.map((speaker: Speaker) => {
+          return {
+            value: speaker.id,
+            label: speaker.name,
+            icon: "speaker",
+          };
+        });
+      });
+  }
+
+  function updateSentance(sentence: Sentence) {
+    const formData = new FormData();
+    formData.append("speaker", sentence.speaker.toString());
+    formData.append("emotion", sentence.emotion);
+    formData.append("transcription", sentence.transcription);
+    formData.append("id", sentence.id.toString());
+
+    fetch(`${BACKEND}/update_sentance`, {
+      method: "POST",
+      body: formData,
+    })
+      .then((response) => response.json())
+      .then((result) => {
+        if (result.status === "success") {
+          getSentences(currentSentenceStatus);
+        } else {
+          alert("Failed to save the recording.");
+        }
+      });
+  }
 </script>
 
 <svelte:head>
@@ -325,6 +375,29 @@
           </div>
         </div>
       </div>
+    </div>
+
+    <div class="pt-6 pb-4" class:hidden={!subDataset}>
+      <form class="max-w-sm mx-auto">
+        <label
+          for="nexwSentance"
+          class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
+          >Add your sentence and hit enter</label
+        >
+        <input
+          type="text"
+          bind:value={newSentance}
+          on:keydown={(event) => {
+            if (event.key === "Enter") {
+              addSentance();
+            }
+          }}
+          id="newSentance"
+          aria-describedby="helper-text-explanation"
+          class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+          placeholder="Your sentence here..."
+        />
+      </form>
     </div>
 
     <div class="bg-white py-4 md:py-7 px-4 md:px-8 xl:px-10">
@@ -377,39 +450,50 @@
             </div>
           </button>
         </div>
-        <div>
+        <div class="flex justify-end gap-4" class:hidden={!subDataset}>
+          <EntitiesList
+            title="Set selection speaker"
+            icon="speaker"
+            disabled={selectedSentences.length === 0}
+            iconClass="w-4 h-4 text-white disabled:text-gray-400"
+            buttonClass="px-2 py-2 text-xs disabled:bg-gray-300 font-medium text-white bg-blue-500 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            entities={speakers}
+            onEntitySelected={(entity: any) => {
+              selectedSentences.forEach((sentence: Sentence) => {
+                sentence.speaker = entity.value;
+                updateSentance(sentence);
+              });
+            }}
+          ></EntitiesList>
+
+          <EntitiesList
+            title="Set selection emotion"
+            disabled={selectedSentences.length === 0}
+            icon={Emotion.NEUTRAL}
+            iconClass="w-4 h-4 text-white disabled:text-gray-400"
+            buttonClass="px-2 py-2 text-xs disabled:bg-gray-300 font-medium text-white bg-blue-500 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
+            entities={emotions}
+            onEntitySelected={(entity: any) => {
+              selectedSentences.forEach((sentence: Sentence) => {
+                sentence.emotion = entity.value;
+                updateSentance(sentence);
+              });
+            }}
+          ></EntitiesList>
+
           <button
-            disabled={deletionselectedValues.length === 0}
+            aria-labelledby="Delete Selection"
+            title="Delete Selection"
+            disabled={selectedSentences.length === 0}
             class:hidden={!subDataset}
-            on:click={(event) => confirmRemoveRecording(deletionselectedValues)}
+            on:click={(event) => confirmRemoveRecording(selectedSentences)}
             class="px-2 py-2 text-xs disabled:bg-gray-300 font-medium text-white bg-blue-500 rounded hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-400"
           >
-            Delete selection
+            <svg class=" w-4 h-4 text-white disabled:text-gray-400">
+              <use href="icons.svg#icon-trash"></use>
+            </svg>
           </button>
         </div>
-      </div>
-
-      <div class="pt-6 pb-2" class:hidden={!subDataset}>
-        <form class="max-w-sm mx-auto">
-          <label
-            for="nexwSentance"
-            class="block mb-2 text-sm font-medium text-gray-900 dark:text-white"
-            >Add your sentence and hit enter</label
-          >
-          <input
-            type="text"
-            bind:value={newSentance}
-            on:keydown={(event) => {
-              if (event.key === "Enter") {
-                addSentance();
-              }
-            }}
-            id="newSentance"
-            aria-describedby="helper-text-explanation"
-            class="bg-gray-50 border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
-            placeholder="Your sentence here..."
-          />
-        </form>
       </div>
 
       <div class="mt-7 overflow-x-auto" class:hidden={!subDataset}>
@@ -437,8 +521,8 @@
                         placeholder="checkbox"
                         type="checkbox"
                         class="focus:opacity-100 checkbox opacity-0 absolute cursor-pointer w-full h-full"
-                        value={sentence.id}
-                        bind:group={deletionselectedValues}
+                        value={sentence}
+                        bind:group={selectedSentences}
                       />
                       <div
                         class="check-icon hidden bg-indigo-700 text-white rounded-sm"
@@ -455,23 +539,99 @@
                     <p
                       class="text-base font-medium leading-none text-gray-700 mr-2 p-4 focus:border
                        border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      on:click={(event) => {
+                        (event.target as HTMLElement)?.setAttribute(
+                          "contenteditable",
+                          "true"
+                        );
+                      }}
                       contenteditable="true"
+                      on:keydown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          const target = event.target as HTMLInputElement;
+                          target.setAttribute("contenteditable", "false");
+
+                          if (
+                            sentence.transcription.trim() !==
+                            target.textContent?.trim()
+                          ) {
+                            sentence.transcription = target.textContent;
+                            updateSentance(sentence);
+                          }
+                        }
+                      }}
+                      on:blur={(event) => {
+                        const target = event.target as HTMLInputElement;
+                        if (
+                          sentence.transcription.trim() !==
+                          target.textContent?.trim()
+                        ) {
+                          sentence.transcription = target.textContent;
+                          updateSentance(sentence);
+                        }
+                      }}
                     >
                       {sentence.transcription}
                     </p>
 
-                    <button aria-labelledby="Update sentence">
-                      <svg class=" w-4 h-4 text-gray-400">
-                        <use href="icons.svg#icon-update-text"></use>
-                      </svg>
-                    </button>
+          
                   </div>
                 </td>
                 <td>
                   {#if sentence.recorded}
-                    <AudioPlayer src={BACKEND + "/" + sentence.file} />
+                    <AudioPlayer src={BACKEND + "/" + dataset.name+ "/" + subDataset + "/audio/" + sentence.file} />
                   {/if}
                 </td>
+
+                <td class="">
+                  <div class="flex items-center pl-5 gap-2">
+                    <EntitiesList
+                      icon="speaker"
+                      entities={speakers}
+                      onEntitySelected={(entity: any) => {
+                        sentence.speaker_name = entity.label;
+                        sentence.speaker = entity.value;
+
+                        updateSentance(sentence);
+                      }}
+                    ></EntitiesList>
+
+                    <p class="text-gray-700 capitalize">
+                      {sentence.speaker_name}
+                    </p>
+                  </div>
+                </td>
+
+                <td class="">
+                  <div class="flex items-center pl-5 gap-2">
+                    <EntitiesList
+                      icon={sentence.emotion}
+                      entities={emotions}
+                      onEntitySelected={(entity: any) => {
+                        sentence.emotion = entity.value;
+                        updateSentance(sentence);
+                      }}
+                    ></EntitiesList>
+                    <p class="text-gray-700 capitalize">
+                      {sentence.emotion}
+                    </p>
+                  </div>
+                </td>
+
+ 
+
+                <td class="pl-5">
+                  <div class:hidden={!sentence.recorded} class="text-sm text-gray-600 flex items-center gap-1">
+                    <svg class=" text-gray-600 w-4 h-4">
+                      <use href="icons.svg#icon-clock"></use>
+                    </svg>
+                    {sentence.end_time}s
+                
+                  </div>
+                </td>
+
+                
                 <td class="pl-5">
                   <button
                     class="py-3 px-3 text-sm focus:outline-none leading-none rounded"
@@ -482,6 +642,7 @@
                     >{sentence.recorded ? "Recoded" : "Pending"}
                   </button>
                 </td>
+
 
                 <td class="pl-4">
                   <button
@@ -507,7 +668,7 @@
                     </svg>
                   </button>
                   <button
-                    on:click={(event) => confirmRemoveRecording([sentence.id])}
+                    on:click={(event) => confirmRemoveRecording([sentence])}
                     aria-label="Delete the sentence"
                     title="Delete the sentence"
                   >
@@ -550,6 +711,8 @@
         {#if subDataset}
           <FileUploder
             {dataset}
+            speakers={speakers}
+            emotions={emotions}
             {subDataset}
             onFileUploded={(status) => {
               status && getSentences(currentSentenceStatus);
