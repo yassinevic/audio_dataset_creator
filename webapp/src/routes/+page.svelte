@@ -52,6 +52,9 @@
       getSpeaker();
 
       showAlertStore.subscribe((alert) => {
+        if (!alert.msg) {
+          return;
+        }
         showAlertBox = true;
         alertMsg = alert.msg;
         alertSuccess = alert.success;
@@ -289,7 +292,7 @@
       {
         transcription: newSentance.trim(),
         emotion: Emotion.NEUTRAL,
-        speaker: speakers[0].value ?? 1,
+        speaker: speakers[0]?.value ?? 1,
       },
     ];
     let transcription = JSON.stringify(jsonOutput, null, 2);
@@ -350,13 +353,17 @@
   let speakers: Entity[] = [];
   function getSpeaker() {
     speakersStore.subscribe((store: Speaker[]) => {
-      speakers = store.map((speaker: Speaker) => {
-        return {
-          value: speaker.id,
-          label: speaker.name,
-          icon: "speaker",
-        };
-      });
+      try {
+        speakers = store?.map((speaker: Speaker) => {
+          return {
+            value: speaker.id,
+            label: speaker.name,
+            icon: "speaker",
+          };
+        });
+      } catch (error) {
+        console.log(error);
+      }
     });
   }
 
@@ -744,9 +751,9 @@
       </div>
     </div>
   </div>
-  <div class="w-1/4 px-4 blur-sm" class:blur-sm={!dataset?.id}>
+  <div class="w-1/4 px-4 " >
     <div class="flex flex-col">
-      <div class="flex-grow pt-10">
+      <div class="flex-grow pt-10" class:blur-sm={!dataset?.id}>
         <h4
           class="flex w-full justify-center text-lg font-semibold text-gray-800 dark:text-gray-300 pb-6"
         >

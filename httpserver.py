@@ -17,11 +17,22 @@ class SimpleHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
         self.send_cors_headers()
+        
         if self.path == '/':
             self.send_header('Content-type', 'text/html')
             self.end_headers()
             with open(f"{static_dir}/200.html", 'rb') as file:
                 self.wfile.write(file.read())
+        elif self.path.endswith('.svg'):
+            print(self.path)
+            file_path = os.path.join(f"{os.getcwd()}/{static_dir}", self.path.lstrip('/'))
+            file_path = file_path.replace('\\', '/')
+            print(file_path)
+            if os.path.exists(file_path):
+                content_type = get_content_type(file_path)
+                self.serve_file(file_path, content_type)
+            else:
+                self.send_error(404, f"File not found: {file_path}")
         elif self.path.startswith('/_app/'):
             file_path = os.path.join(f"{os.getcwd()}/{static_dir}", self.path.lstrip('/'))
             if os.path.exists(file_path):

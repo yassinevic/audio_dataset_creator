@@ -30,7 +30,7 @@
       return {
         file: file,
         emotion: Emotion.NEUTRAL,
-        speaker: speakers[0].value ?? 1,
+        speaker: speakers[0]?.value ?? 1,
       };
     });
 

@@ -103,6 +103,9 @@
 <div class="space-y-4 px-4 py-4">
   {#each speakers as speaker}
     <div class="flex w-full px-4 space-x-4 border rounded-lg h-12 items-center">
+      <svg class=" w-6 h-6 text-gray-400">
+        <use href="icons.svg#icon-speaker"></use>
+      </svg>
       <p class="text-gray-700 capitalize flex-grow">{speaker.name}</p>
       <div>
         <button
