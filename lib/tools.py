@@ -363,5 +363,7 @@ def get_content_type( file_path):
         return 'audio/mpeg'  # MIME type for MP3 files
     elif ext == '.wav':
         return 'audio/wav'   # MIME type for WAV files
+    elif ext == '.svg':
+        return 'image/svg+xml'   # MIME type for WAV files
     else:
         return 'application/octet-stream'
