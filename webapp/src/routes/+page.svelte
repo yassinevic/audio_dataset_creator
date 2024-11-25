@@ -6,7 +6,6 @@
     type Dataset,
     type Entity,
     type Sentence,
-    type SentenceID,
     type SentenceResponse,
     type Speaker,
   } from "$lib/types/model";
@@ -17,9 +16,10 @@
   import FileUploder from "$lib/components/FileUploder.svelte";
   import Pagination from "$lib/components/Pagination.svelte";
   import Subset from "$lib/components/Subset.svelte";
-  import { sentencesStore } from "$lib/stores/store";
+  import { sentencesStore, speakersStore } from "$lib/stores/store";
   import EntitiesList from "$lib/components/EntitiesList.svelte";
   import { onMount } from "svelte";
+  import SpeakersManager from "$lib/components/SpeakersManager.svelte";
   let BACKEND = import.meta.env.VITE_BACKEND || "";
 
   // Reactive subscription to the store
@@ -238,7 +238,11 @@
   function setCurrentDataset(_dataset: Dataset) {
     subDataset = null;
     dataset = _dataset;
-    sentencesStore.set({ count: 0, sentence: [] });
+    sentencesStore.set({
+      count: 0,
+      sentence: [],
+      subDataSet: SubDataSet.TRAIN,
+    });
   }
 
   function setCurrentSubset(_subDataset: SubDataSet) {
@@ -303,19 +307,17 @@
       icon: emotion[1],
     };
   });
-  let speakers: Entity[] =[];
+  let speakers: Entity[] = [];
   function getSpeaker() {
-    fetch(`${BACKEND}/get_speakers`)
-      .then((response) => response.json())
-      .then((_speakers: Speaker[]) => {
-        speakers = _speakers.map((speaker: Speaker) => {
-          return {
-            value: speaker.id,
-            label: speaker.name,
-            icon: "speaker",
-          };
-        });
+    speakersStore.subscribe((store: Speaker[]) => {
+      speakers = store.map((speaker: Speaker) => {
+        return {
+          value: speaker.id,
+          label: speaker.name,
+          icon: "speaker",
+        };
       });
+    });
   }
 
   function updateSentance(sentence: Sentence) {
@@ -556,7 +558,7 @@
                             sentence.transcription.trim() !==
                             target.textContent?.trim()
                           ) {
-                            sentence.transcription = target.textContent;
+                            sentence.transcription = target.textContent ?? "";
                             updateSentance(sentence);
                           }
                         }
@@ -567,20 +569,26 @@
                           sentence.transcription.trim() !==
                           target.textContent?.trim()
                         ) {
-                          sentence.transcription = target.textContent;
+                          sentence.transcription = target.textContent ?? "";
                           updateSentance(sentence);
                         }
                       }}
                     >
                       {sentence.transcription}
                     </p>
-
-          
                   </div>
                 </td>
                 <td>
                   {#if sentence.recorded}
-                    <AudioPlayer src={BACKEND + "/" + dataset.name+ "/" + subDataset + "/audio/" + sentence.file} />
+                    <AudioPlayer
+                      src={BACKEND +
+                        "/" +
+                        dataset.name +
+                        "/" +
+                        subDataset +
+                        "/audio/" +
+                        sentence.file}
+                    />
                   {/if}
                 </td>
 
@@ -619,19 +627,18 @@
                   </div>
                 </td>
 
- 
-
                 <td class="pl-5">
-                  <div class:hidden={!sentence.recorded} class="text-sm text-gray-600 flex items-center gap-1">
+                  <div
+                    class:hidden={!sentence.recorded}
+                    class="text-sm text-gray-600 flex items-center gap-1"
+                  >
                     <svg class=" text-gray-600 w-4 h-4">
                       <use href="icons.svg#icon-clock"></use>
                     </svg>
                     {sentence.end_time}s
-                
                   </div>
                 </td>
 
-                
                 <td class="pl-5">
                   <button
                     class="py-3 px-3 text-sm focus:outline-none leading-none rounded"
@@ -642,7 +649,6 @@
                     >{sentence.recorded ? "Recoded" : "Pending"}
                   </button>
                 </td>
-
 
                 <td class="pl-4">
                   <button
@@ -697,7 +703,6 @@
   </div>
   <div class="w-1/4 px-4 blur-sm" class:blur-sm={!dataset?.id}>
     <div class="flex flex-col">
-      <div class="flex justify-end"></div>
       <div class="flex-grow pt-10">
         <h4
           class="flex w-full justify-center text-lg font-semibold text-gray-800 dark:text-gray-300 pb-6"
@@ -711,8 +716,8 @@
         {#if subDataset}
           <FileUploder
             {dataset}
-            speakers={speakers}
-            emotions={emotions}
+            {speakers}
+            {emotions}
             {subDataset}
             onFileUploded={(status) => {
               status && getSentences(currentSentenceStatus);
@@ -720,6 +725,15 @@
           ></FileUploder>
         {/if}
       </div>
+    </div>
+    <div class=" pt-10">
+      <h4
+        class="flex w-full justify-center text-lg font-semibold text-gray-800 dark:text-gray-300 pb-6"
+      >
+        Speakers Manager
+      </h4>
+
+      <SpeakersManager></SpeakersManager>
     </div>
   </div>
 </div>

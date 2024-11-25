@@ -143,11 +143,19 @@ def import_transcriptions(fields):
     return True
 
 def add_dataset(fields):
-    name = fields.get('dataset')
+    name = fields.get('speaker')
     my_dict = {
         "name": name
     }
     db.insert('dataset',my_dict)
+    return True
+
+def add_speaker(fields):
+    name = fields.get('speaker')
+    my_dict = {
+        "name": name
+    }
+    db.insert('speaker',my_dict)
     return True
 
 def update_sentance(fields):
@@ -255,6 +263,11 @@ def deleteDataset(fields):
     folder_path = PROJECTS_DIR + "/"  + dataset_name
     # Delete the folder and its contents
     shutil.rmtree(folder_path)
+    return True
+
+def deleteSpeaker(fields):
+    id = int(fields.get('id'))
+    db.delete('speaker', 'id', id)
     return True
 
 def deleteSubDataset(fields):

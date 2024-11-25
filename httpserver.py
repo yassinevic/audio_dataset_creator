@@ -3,7 +3,7 @@ import re
 import sys
 sys.path.insert(0, os.path.dirname(__file__))
 from urllib.parse import urlparse
-from lib.tools import PROJECTS_DIR, add_dataset, createProjectStructure, delete_transcriptions, deleteDataset, deleteSubDataset, export_table_to_csv, get_content_type, get_db, get_project_dir, import_transcriptions, list_directories, removeRecording, update_sentance, upload_audio
+from lib.tools import PROJECTS_DIR, add_dataset, add_speaker, createProjectStructure, delete_transcriptions, deleteDataset, deleteSpeaker, deleteSubDataset, export_table_to_csv, get_content_type, get_db, get_project_dir, import_transcriptions, list_directories, removeRecording, update_sentance, upload_audio
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import json
 #import cgi
@@ -186,6 +186,13 @@ class SimpleHandler(BaseHTTPRequestHandler):
                 except Exception as e:
                     print(e)
                     self.wfile.write(b'{"status": "Failed", "message": "Dataset not deleted"}')
+            elif self.path == '/delete_speaker':
+                try:
+                    deleteSpeaker(fields)
+                    self.wfile.write(b'{"status": "success", "message": "Speaker deleted"}')
+                except Exception as e:
+                    print(e)
+                    self.wfile.write(b'{"status": "Failed", "message": "Speaker not deleted"}')
             elif self.path == '/delete_sub_dataset':
                 try:
                     deleteSubDataset(fields)
@@ -213,7 +220,14 @@ class SimpleHandler(BaseHTTPRequestHandler):
                     self.wfile.write(b'{"status": "success", "message": "dataset added"}')
                 except Exception as e:
                     print(e)
-                    self.wfile.write(b'{"status": "Failed", "message": "dataset not add"}')       
+                    self.wfile.write(b'{"status": "Failed", "message": "dataset not add"}')     
+            elif self.path == '/add_speaker':
+                try:
+                    add_speaker(fields)
+                    self.wfile.write(b'{"status": "success", "message": "dataset added"}')
+                except Exception as e:
+                    print(e)
+                    self.wfile.write(b'{"status": "Failed", "message": "dataset not add"}')      
             elif self.path == '/export_dataset':
                 try:
                     export_table_to_csv(fields)
