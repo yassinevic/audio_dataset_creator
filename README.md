@@ -67,7 +67,11 @@ npm run dev
 
 The frontend will launch on `http://localhost:5173` (default port). You can interact with the UI for recording and transcription management.
 
-### 3. File Management
+### 3. Import File Format
+
+The import file should be a plain text file where each sentence is written on a separate line. There are no headers or additional metadata—only the sentences themselves, one per line. This straightforward format makes it easy to prepare and load datasets into the project. For reference, you can find an example of the required import format in the `sample` folder within the project.
+
+### 4. File Management
 - **Audio Files**: Stored in the `projects` folder.
 - **Transcriptions**: Saved in an SQLite database located in the project root.
 
