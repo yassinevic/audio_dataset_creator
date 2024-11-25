@@ -12,7 +12,7 @@ CREATE TABLE speaker (
     name TEXT    NOT NULL
 );
 
-insert into speaker ("name") values ("defualt");
+insert into speaker ("name") values ("default");
 
 CREATE TABLE sentence (
     id            INTEGER     PRIMARY KEY AUTOINCREMENT
