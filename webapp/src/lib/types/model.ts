@@ -6,8 +6,8 @@ export interface Sentence {
   isRecording?: boolean;
   sub_dataset: SubDataSet;
   dataset: SentenceID;
-  start_time: string;
-  end_time: string;
+  start_time: number;
+  end_time: number;
   speaker: SpeakerID;
   speaker_name: SpeakerName;
   emotion: Emotion;

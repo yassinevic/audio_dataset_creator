@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { sentencesStore } from "$lib/stores/store";
+  import { sentencesStore, showAlertStore } from "$lib/stores/store";
   import {
     SentenceStatus,
     SubDataSet,
@@ -7,6 +7,7 @@
     type Sentence,
     type SentenceResponse,
   } from "../types/model";
+  import Alert from "./Alert.svelte";
 
   import ConfirmationBox from "./ConfirmationBox.svelte";
 
@@ -73,10 +74,18 @@
       .then((response) => response.json())
       .then((result) => {
         if (result.status === "success") {
-          sentencesStore.set({ count: 0, sentence: [] });
+          sentencesStore.set({
+            count: 0,
+            sentence: [],
+            subDataSet: sub_dataset,
+          });
           counts[sub_dataset] = 0;
+          showAlertStore.set({ msg: "Sub dataset deleted.", success: true });
         } else {
-          alert("Failed to save the recording.");
+          showAlertStore.set({
+            msg: "Failed to delete the sub dataset.",
+            success: true,
+          });
         }
       });
   }
@@ -106,7 +115,7 @@
       <button
         on:click={() => setCurrentSubset(value)}
         class="flex items-center w-full space-x-4 h-12"
-        >
+      >
         <!-- Icon -->
         <div class={colors[index]}>
           <svg class="w-6 h-6">
@@ -129,7 +138,7 @@
         }}
         aria-label="Delete this sub dataset"
         class="pr-2"
-                title="Delete this sub dataset"
+        title="Delete this sub dataset"
       >
         <svg class=" w-5 h-5 text-red-700">
           <use href="icons.svg#icon-trash"></use>

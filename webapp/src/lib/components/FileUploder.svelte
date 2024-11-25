@@ -1,4 +1,5 @@
 <script lang="ts">
+  import { showAlertStore } from "$lib/stores/store";
   import {
     type Dataset,
     SubDataSet,
@@ -6,7 +7,6 @@
     type TranscriptionFile,
     Emotion,
   } from "$lib/types/model";
-
   import EntitiesList from "./EntitiesList.svelte";
 
   let BACKEND = import.meta.env.VITE_BACKEND || "";
@@ -15,7 +15,7 @@
   export let onFileUploded: (status: boolean) => void;
   export let speakers: Entity[] = [];
   export let emotions: any[] = [];
-  //let files: File[] = [];
+
   let transcriptionFiles: TranscriptionFile[] = [];
   let dragOver = false;
   // Handle file drop
@@ -134,7 +134,10 @@
         }
         onFileUploded(true);
         transcriptionFiles = [];
-        alert("Saved");
+        showAlertStore.set({
+          msg: "File imported.",
+          success: true,
+        });
       });
   }
 </script>
@@ -152,7 +155,10 @@
       <use href="icons.svg#icon-uploader"></use>
     </svg>
 
-    <button class="text-gray-400 font-semibold text-sm" on:click={() => document.getElementById("file-input")?.click()}>
+    <button
+      class="text-gray-400 font-semibold text-sm"
+      on:click={() => document.getElementById("file-input")?.click()}
+    >
       Drag & Drop or <span class="text-[#007bff]">Choose file</span> to upload
     </button>
     <input
