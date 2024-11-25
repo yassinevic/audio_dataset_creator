@@ -143,7 +143,7 @@ def import_transcriptions(fields):
     return True
 
 def add_dataset(fields):
-    name = fields.get('speaker')
+    name = fields.get('dataset')
     my_dict = {
         "name": name
     }
