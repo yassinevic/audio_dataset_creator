@@ -23,6 +23,13 @@
 - Node.js and npm
 - FFmpeg
 
+### Clone the Repository
+```bash
+git clone https://github.com/yassinevic/audio_dataset_creator.git
+cd audio_dataset_creator
+```
+
+
 ### Setting Up FFmpeg
 
 To use certain features of this application that require FFmpeg (e.g., audio or video processing), follow these steps:
@@ -37,13 +44,6 @@ To use certain features of this application that require FFmpeg (e.g., audio or 
 3. **Place FFmpeg in the `tools` Folder**:
    - Copy the extracted FFmpeg executable files (e.g., `ffmpeg`, `ffplay`, `ffprobe`) to the `tools` folder in your project directory.
 
-
-### Clone the Repository
-```bash
-git clone https://github.com/yassinevic/audio_dataset_creator.git
-cd audio_dataset_creator
-```
-
 ---
 
 ## Usage
@@ -53,9 +53,12 @@ The backend is built using Python. Start the server with:
 ```bash
 python httpserver.py
 ```
+The frontend will launch on `http://localhost:8080`
+
 
 This serves the backend for audio file management and database operations.
 
+***If you don't need to customize the UI, you can skip Frontend setup.***
 ### 2. Start the Frontend
 Navigate to the `webapp` folder to run the UI:
 ```bash
