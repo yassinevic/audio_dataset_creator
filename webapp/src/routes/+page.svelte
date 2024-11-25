@@ -16,10 +16,15 @@
   import FileUploder from "$lib/components/FileUploder.svelte";
   import Pagination from "$lib/components/Pagination.svelte";
   import Subset from "$lib/components/Subset.svelte";
-  import { sentencesStore, speakersStore } from "$lib/stores/store";
+  import {
+    sentencesStore,
+    showAlertStore,
+    speakersStore,
+  } from "$lib/stores/store";
   import EntitiesList from "$lib/components/EntitiesList.svelte";
   import { onMount } from "svelte";
   import SpeakersManager from "$lib/components/SpeakersManager.svelte";
+  import Alert from "$lib/components/Alert.svelte";
   let BACKEND = import.meta.env.VITE_BACKEND || "";
 
   // Reactive subscription to the store
@@ -30,6 +35,8 @@
   let dataset: Dataset;
   let subDataset: SubDataSet | null = null;
   let showConfirmationBox = false;
+  let showAlertBox = false;
+  let alertSuccess = false;
   let mediaRecorder!: MediaRecorder;
   let audioChunks: BlobPart[] = [];
   let currentPage: number = 1;
@@ -38,10 +45,22 @@
   let currentSentenceStatus = SentenceStatus.ALL;
   let newSentance = "";
   $: currentPage, firePagination();
+  let alertMsg = "";
 
   onMount(() => {
     {
       getSpeaker();
+
+      showAlertStore.subscribe((alert) => {
+        showAlertBox = true;
+        alertMsg = alert.msg;
+        alertSuccess = alert.success;
+
+        let t = setTimeout(() => {
+          showAlertBox = false;
+          clearTimeout(t);
+        }, 3000);
+      });
     }
   });
 
@@ -94,8 +113,10 @@
           mediaRecorder.start();
         });
     } catch (error) {
-      console.error("Microphone access denied:", error);
-      alert("Please allow access to the microphone.");
+      showAlertStore.set({
+        msg: "Please allow access to the microphone.",
+        success: false,
+      });
     }
   }
 
@@ -172,7 +193,10 @@
         if (result.status === "success") {
           selectedSentence.recorded = false;
         } else {
-          alert("Failed to save the recording.");
+          showAlertStore.set({
+            msg: "Failed to remove the recording.",
+            success: false,
+          });
         }
         selectedSentence.isRecording = false;
         sentencesStore.update((sentences) => ({
@@ -207,7 +231,10 @@
           getSentences(currentSentenceStatus);
           selectedSentences = [];
         } else {
-          alert("Failed to save the recording.");
+          showAlertStore.set({
+            msg: "Failed to delete the selected sentences.",
+            success: false,
+          });
         }
       });
   }
@@ -228,9 +255,16 @@
       .then((result) => {
         if (result.status === "success") {
           sentence.recorded = true;
+          showAlertStore.set({
+            msg: "Please allow access to the microphone.",
+            success: true,
+          });
           getSentences(currentSentenceStatus);
         } else {
-          alert("Failed to save the recording.");
+          showAlertStore.set({
+            msg: "Failed to save the recording.",
+            success: false,
+          });
         }
       });
   }
@@ -273,7 +307,10 @@
         if (result.status === "success") {
           getSentences(currentSentenceStatus);
         } else {
-          alert("Failed to save the recording.");
+          showAlertStore.set({
+            msg: "Failed to add the sentance.",
+            success: false,
+          });
         }
       });
     newSentance = "";
@@ -294,7 +331,10 @@
         if (result.status === "success") {
           getSentences(currentSentenceStatus);
         } else {
-          alert("Failed to save the recording.");
+          showAlertStore.set({
+            msg: "Failed to export the dataset.",
+            success: false,
+          });
         }
       });
     newSentance = "";
@@ -336,7 +376,10 @@
         if (result.status === "success") {
           getSentences(currentSentenceStatus);
         } else {
-          alert("Failed to save the recording.");
+          showAlertStore.set({
+            msg: "Failed to update the sentance.",
+            success: false,
+          });
         }
       });
   }
@@ -635,7 +678,7 @@
                     <svg class=" text-gray-600 w-4 h-4">
                       <use href="icons.svg#icon-clock"></use>
                     </svg>
-                    {sentence.end_time}s
+                    {sentence.end_time?.toFixed(2)}s
                   </div>
                 </td>
 
@@ -737,6 +780,7 @@
     </div>
   </div>
 </div>
+<Alert msg={alertMsg} success={alertSuccess} show={showAlertBox}></Alert>
 
 <style>
   .checkbox:checked + .check-icon {
