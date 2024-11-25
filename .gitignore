@@ -47,3 +47,6 @@ db/data.db
 /webapp/.svelte-kit
 /webapp/node_modules/
 /db/
+db/data.db
+lib/__pycache__/sqlite_db.cpython-313.pyc
+lib/__pycache__/tools.cpython-313.pyc

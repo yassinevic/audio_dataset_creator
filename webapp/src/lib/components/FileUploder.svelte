@@ -1,12 +1,12 @@
 <script lang="ts">
   import {
-    Emotion,
     type Dataset,
+    SubDataSet,
     type Entity,
-    type Speaker,
-    type SubDataSet,
     type TranscriptionFile,
-  } from "../types/model";
+    Emotion,
+  } from "$lib/types/model";
+
   import EntitiesList from "./EntitiesList.svelte";
 
   let BACKEND = import.meta.env.VITE_BACKEND || "";
@@ -68,8 +68,6 @@
     });
   }
 
-  // Handle file selection
-  // Handle file selection
   function handleFileInput(event: Event) {
     const selectedFiles = Array.from(
       (event.target as HTMLInputElement).files ?? []
@@ -154,9 +152,9 @@
       <use href="icons.svg#icon-uploader"></use>
     </svg>
 
-    <p class="text-gray-400 font-semibold text-sm">
+    <button class="text-gray-400 font-semibold text-sm" on:click={() => document.getElementById("file-input")?.click()}>
       Drag & Drop or <span class="text-[#007bff]">Choose file</span> to upload
-    </p>
+    </button>
     <input
       id="file-input"
       type="file"
@@ -175,7 +173,8 @@
             <div class="flex items-center gap-1">
               <EntitiesList
                 title="({speakers.find(
-                  (_speaker) => _speaker.value === (transcriptionFile.speaker ?? 0)
+                  (_speaker) =>
+                    _speaker.value === (transcriptionFile.speaker ?? 0)
                 )?.label})Set selection speaker"
                 icon="speaker"
                 entities={speakers}

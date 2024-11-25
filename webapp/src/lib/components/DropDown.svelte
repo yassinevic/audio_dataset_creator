@@ -1,7 +1,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import ConfirmationBox from "./ConfirmationBox.svelte";
-  import type { Dataset, DatasetResponse } from "../types/model";
+  import { SubDataSet, type Dataset, type DatasetResponse } from "../types/model";
   import { sentencesStore } from "$lib/stores/store";
 
   let BACKEND = import.meta.env.VITE_BACKEND || "";
@@ -79,7 +79,7 @@
       .then((response) => response.json())
       .then((result) => {
         if (result.status === "success") {
-          sentencesStore.set({ count: 0, sentence: [] });
+          sentencesStore.set({ count: 0, sentence: [], subDataSet: SubDataSet.TRAIN });
           getDatasets();
         } else {
           alert("Failed to save the recording.");
